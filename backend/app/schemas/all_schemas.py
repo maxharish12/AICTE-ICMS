@@ -84,7 +84,8 @@ class UserUpdateAdmin(BaseModel):
 
 # ----------------- INSTITUTION SCHEMAS -----------------
 class InstitutionBase(BaseModel):
-    permanent_id: str = Field(..., description="Unique AICTE Permanent ID")
+    college_id: Optional[str] = Field(None, description="Internal College ID e.g. CLG-1001")
+    permanent_id: Optional[str] = Field(None, description="Unique AICTE Permanent ID e.g. DEMO-AICTE-001")
     institution_name: str
     institution_type: str
     address: str
@@ -103,6 +104,7 @@ class InstitutionCreate(InstitutionBase):
     pass
 
 class InstitutionUpdate(BaseModel):
+    college_id: Optional[str] = None
     permanent_id: Optional[str] = None
     institution_name: Optional[str] = None
     institution_type: Optional[str] = None
@@ -125,6 +127,9 @@ class InstitutionOut(InstitutionBase):
     region: Optional[RegionSimpleOut] = None
     total_complaints: int = 0
     active_cases: int = 0
+    open_cases: int = 0
+    pending_cases: int = 0
+    resolved_cases: int = 0
     overdue_cases: int = 0
     potential_overlaps: int = 0
     last_activity: Optional[datetime] = None
@@ -180,6 +185,7 @@ class ComplaintSimpleOut(BaseModel):
     source: str
     status: str
     sensitivity_classification: str
+    incident_date: Optional[datetime] = None
     received_at: datetime
     created_at: datetime
 
@@ -195,18 +201,26 @@ class ComplaintOut(BaseModel):
     institution_id: int
     institution_name: Optional[str] = None
     permanent_id: Optional[str] = None
+    aicte_permanent_id: Optional[str] = None
+    college_id: Optional[str] = None
     category_id: int
     category_name: Optional[str] = None
     complainant_type: str
     source: str
+    incident_date: Optional[datetime] = None
     received_at: datetime
     status: str
+    priority: Optional[str] = "MEDIUM"
     sensitivity_classification: str
     assigned_bureau_id: Optional[int] = None
     assigned_bureau_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     linked_case_reference: Optional[str] = None
+    has_potential_overlap: bool = False
+    overlap_count: int = 0
+    overlap_reason: Optional[str] = None
+    overlap_confidence: Optional[float] = None
     documents: List[DocumentOut] = []
 
     class Config:
@@ -289,6 +303,11 @@ class CaseSimpleOut(BaseModel):
     title: str
     status: str
     priority: str
+    institution_id: Optional[int] = None
+    institution_name: Optional[str] = None
+    college_id: Optional[str] = None
+    permanent_id: Optional[str] = None
+    category: Optional[str] = None
     current_bureau_name: Optional[str] = None
     assigned_officer_name: Optional[str] = None
     received_at: datetime
@@ -296,6 +315,7 @@ class CaseSimpleOut(BaseModel):
     last_action_at: datetime
     applicable_deadline_at: Optional[datetime] = None
     is_overdue: bool = False
+    has_potential_overlap: bool = False
 
     class Config:
         from_attributes = True
@@ -306,6 +326,8 @@ class CaseOut(BaseModel):
     institution_id: int
     institution_name: Optional[str] = "N/A"
     permanent_id: Optional[str] = "N/A"
+    aicte_permanent_id: Optional[str] = "N/A"
+    college_id: Optional[str] = "N/A"
     institution_region: Optional[str] = None
     current_bureau_id: int
     current_bureau_name: Optional[str] = "N/A"
@@ -327,6 +349,9 @@ class CaseOut(BaseModel):
     days_remaining: Optional[int] = None
     escalation_status: str = "NONE"
     has_potential_overlap: bool = False
+    overlap_reason: Optional[str] = None
+    overlap_confidence: Optional[float] = None
+    is_confidential: bool = False
     linked_complaint_ids: List[int] = []
     linked_complaint_refs: List[str] = []
     created_at: datetime
@@ -344,7 +369,7 @@ class CaseDetailOut(CaseOut):
 
 # ----------------- OVERLAP & COORDINATION SCHEMAS -----------------
 class OverlapReviewRequest(BaseModel):
-    action_type: str = Field(..., description="REVIEW, CONFIRM_RELATED, MARK_NOT_RELATED, REQUEST_COORDINATION, RECORD_JOINT_ACTION, ESCALATE, COMPLETE")
+    action_type: str = Field(..., description="REVIEW, CONFIRM_RELATED, MARK_NOT_RELATED, REQUEST_COORDINATION, RECORD_JOINT_ACTION, ESCALATE, COMPLETE, REOPEN")
     remarks: str
     coordination_owner_id: Optional[int] = None
 
@@ -362,10 +387,12 @@ class OverlapFlagSimpleOut(BaseModel):
     id: int
     institution_id: int
     institution_name: Optional[str] = None
+    college_id: Optional[str] = None
     permanent_id: Optional[str] = None
     detection_type: str
     detection_reason: str
     relationship_state: str
+    confidence_score: Optional[float] = 0.85
     first_detected_at: datetime
     last_checked_at: datetime
 
@@ -376,12 +403,14 @@ class OverlapFlagOut(BaseModel):
     id: int
     institution_id: int
     institution_name: str
-    permanent_id: str
+    college_id: Optional[str] = None
+    permanent_id: Optional[str] = None
     institution_state: str
     institution_region: str
     detection_type: str
     detection_reason: str
     relationship_state: str
+    confidence_score: Optional[float] = 0.85
     first_detected_at: datetime
     last_checked_at: datetime
     reviewed_by_name: Optional[str] = None

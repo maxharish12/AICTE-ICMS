@@ -39,7 +39,9 @@ export interface User {
 
 export interface Institution {
   id: number;
-  permanent_id: string;
+  college_id?: string;
+  permanent_id?: string;
+  aicte_permanent_id?: string;
   institution_name: string;
   institution_type: string;
   address: string;
@@ -58,6 +60,9 @@ export interface Institution {
   updated_at: string;
   total_complaints: number;
   active_cases: number;
+  open_cases?: number;
+  pending_cases?: number;
+  resolved_cases?: number;
   overdue_cases: number;
   potential_overlaps: number;
   last_activity?: string;
@@ -95,6 +100,7 @@ export interface ComplaintSimple {
   source: string;
   status: string;
   sensitivity_classification: string;
+  incident_date?: string;
   received_at: string;
   created_at: string;
 }
@@ -107,19 +113,27 @@ export interface Complaint {
   complainant_id?: number;
   institution_id: number;
   institution_name?: string;
+  college_id?: string;
   permanent_id?: string;
+  aicte_permanent_id?: string;
   category_id: number;
   category_name?: string;
   complainant_type: string;
   source: string;
+  incident_date?: string;
   received_at: string;
   status: string;
+  priority?: string;
   sensitivity_classification: string;
   assigned_bureau_id?: number;
   assigned_bureau_name?: string;
   created_at: string;
   updated_at: string;
   linked_case_reference?: string;
+  has_potential_overlap?: boolean;
+  overlap_count?: number;
+  overlap_reason?: string;
+  overlap_confidence?: number;
   documents: Document[];
 }
 
@@ -162,6 +176,11 @@ export interface CaseSimple {
   title: string;
   status: string;
   priority: string;
+  institution_id?: number;
+  institution_name?: string;
+  college_id?: string;
+  permanent_id?: string;
+  category?: string;
   current_bureau_name?: string;
   assigned_officer_name?: string;
   received_at: string;
@@ -169,6 +188,7 @@ export interface CaseSimple {
   last_action_at: string;
   applicable_deadline_at?: string;
   is_overdue: boolean;
+  has_potential_overlap?: boolean;
 }
 
 export interface Case {
@@ -176,7 +196,9 @@ export interface Case {
   case_reference: string;
   institution_id: number;
   institution_name: string;
+  college_id?: string;
   permanent_id: string;
+  aicte_permanent_id?: string;
   institution_region?: string;
   current_bureau_id: number;
   current_bureau_name: string;
@@ -198,6 +220,9 @@ export interface Case {
   days_remaining?: number;
   escalation_status: string;
   has_potential_overlap: boolean;
+  overlap_reason?: string;
+  overlap_confidence?: number;
+  is_confidential?: boolean;
   linked_complaint_ids: number[];
   linked_complaint_refs: string[];
   created_at: string;
@@ -224,10 +249,12 @@ export interface OverlapFlagSimple {
   id: number;
   institution_id: number;
   institution_name?: string;
+  college_id?: string;
   permanent_id?: string;
   detection_type: string;
   detection_reason: string;
   relationship_state: string;
+  confidence_score?: number;
   first_detected_at: string;
   last_checked_at: string;
 }
@@ -236,12 +263,14 @@ export interface OverlapFlag {
   id: number;
   institution_id: number;
   institution_name: string;
-  permanent_id: string;
+  college_id?: string;
+  permanent_id?: string;
   institution_state: string;
   institution_region: string;
   detection_type: string;
   detection_reason: string;
   relationship_state: string;
+  confidence_score?: number;
   first_detected_at: string;
   last_checked_at: string;
   reviewed_by_name?: string;

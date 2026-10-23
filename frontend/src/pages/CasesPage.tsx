@@ -50,16 +50,16 @@ export const CasesPage: React.FC = () => {
       <div className="gov-card p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-gov-secondary"></span>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest font-mono">
-              CASE WORKFLOW ENGINE
+            <span className="w-2 h-2 rounded-full bg-gov-primary"></span>
+            <span className="text-[11px] font-bold text-gov-muted uppercase tracking-widest font-mono">
+              OFFICIAL CASE WORKSPACE
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gov-dark mt-1">
-            Official Grievance Cases
+          <h1 className="text-xl sm:text-2xl font-bold text-gov-text mt-1">
+            Official Case Files — Central Docket
           </h1>
-          <p className="text-xs text-gov-muted mt-1">
-            Active and resolved official grievance workflow records across AICTE regulatory and grievance bureaus
+          <p className="text-xs text-gov-muted mt-1 max-w-3xl">
+            Active and adjudicated institutional grievance proceedings across AICTE regulatory and grievance bureaus.
           </p>
         </div>
       </div>
@@ -67,7 +67,7 @@ export const CasesPage: React.FC = () => {
       {/* Filter and Search Bar */}
       <div className="gov-card p-4 flex flex-col lg:flex-row items-center justify-between gap-4 text-xs">
         <div className="relative w-full lg:w-96">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-gov-muted" />
           <input
             type="text"
             placeholder="Search by Case Ref, Title, Institution, or Permanent ID..."
@@ -123,10 +123,10 @@ export const CasesPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setFilterOverdue(!filterOverdue)}
-            className={`px-3 py-2 rounded-md border text-xs font-semibold cursor-pointer transition-all shadow-xs ${
+            className={`px-3 py-2 rounded-md border text-xs font-semibold cursor-pointer transition-all shadow-gov-sm ${
               filterOverdue
-                ? 'bg-red-700 text-white border-red-800'
-                : 'bg-white hover:bg-slate-50 text-slate-700 border-gov-border'
+                ? 'bg-gov-critical text-white border-gov-critical'
+                : 'bg-white hover:bg-gov-light/50 text-gov-text border-gov-border'
             }`}
           >
             Overdue Only
@@ -135,16 +135,16 @@ export const CasesPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setFilterOverlap(!filterOverlap)}
-            className={`px-3 py-2 rounded-md border text-xs font-semibold cursor-pointer transition-all shadow-xs ${
+            className={`px-3 py-2 rounded-md border text-xs font-semibold cursor-pointer transition-all shadow-gov-sm ${
               filterOverlap
-                ? 'bg-rose-700 text-white border-rose-800'
-                : 'bg-white hover:bg-slate-50 text-slate-700 border-gov-border'
+                ? 'bg-[#FFF0E6] text-gov-dark border-gov-primary font-bold'
+                : 'bg-white hover:bg-gov-light/50 text-gov-text border-gov-border'
             }`}
           >
             Overlaps Only
           </button>
 
-          <span className="text-[11px] font-mono text-slate-400 border-l border-slate-200 pl-3 hidden sm:inline">
+          <span className="text-[11px] font-mono text-gov-muted border-l border-gov-border pl-3 hidden sm:inline">
             {cases.length} Records
           </span>
         </div>
@@ -167,60 +167,60 @@ export const CasesPage: React.FC = () => {
                 <th className="py-3 px-3.5 text-right min-w-[90px]">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-gov-border">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
+                  <td colSpan={9} className="py-12 text-center text-gov-muted">
                     Loading cases database...
                   </td>
                 </tr>
               ) : cases.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
-                    No matching cases found
+                  <td colSpan={9} className="py-12 text-center text-gov-muted">
+                    No matching cases found.
                   </td>
                 </tr>
               ) : (
                 cases.map((c) => (
                   <tr key={c.id} className="gov-table-row">
-                    <td className="py-3 px-3.5 font-mono font-bold text-gov-primary whitespace-nowrap">
+                    <td className="py-3 px-3.5 font-mono font-bold text-gov-dark whitespace-nowrap">
                       {c.case_reference}
                     </td>
                     <td className="py-3 px-3.5">
-                      <div className="font-semibold text-slate-900 truncate max-w-[230px]" title={c.institution_name}>
+                      <div className="font-semibold text-gov-text truncate max-w-[230px]" title={c.institution_name}>
                         {c.institution_name}
                       </div>
-                      <span className="font-mono text-[10px] text-gov-secondary font-bold">
+                      <span className="font-mono text-[10px] text-gov-dark font-bold">
                         {c.permanent_id}
                       </span>
                     </td>
                     <td className="py-3 px-3.5">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-gov-dark border border-gov-border">
                         {c.current_bureau_code}
                       </span>
                     </td>
-                    <td className="py-3 px-3.5 text-slate-800 font-medium">
-                      {c.current_officer_name || <span className="text-slate-400 italic">Unassigned</span>}
+                    <td className="py-3 px-3.5 text-gov-text font-medium">
+                      {c.current_officer_name || <span className="text-gov-muted/60 italic">Unassigned</span>}
                     </td>
                     <td className="py-3 px-3.5">
-                      <span className="gov-badge gov-badge-info">
+                      <span className="gov-badge bg-gov-light text-gov-dark border border-gov-primary/30 font-semibold">
                         {c.status}
                       </span>
                     </td>
                     <td className="py-3 px-3.5">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         c.priority === 'URGENT'
-                          ? 'bg-red-100 text-red-800 border border-red-300'
+                          ? 'bg-[#FDF2F2] text-gov-critical border border-red-200'
                           : c.priority === 'HIGH'
-                          ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                          : 'bg-slate-100 text-slate-700 border border-slate-200'
+                          ? 'bg-[#FFF0E6] text-gov-dark border border-gov-primary/40'
+                          : 'bg-slate-100 text-gov-muted border border-gov-border'
                       }`}>
                         {c.priority}
                       </span>
                     </td>
                     <td className="py-3 px-3.5">
                       <span className={`text-[11px] font-medium ${
-                        c.is_overdue ? 'text-red-700 font-bold' : 'text-slate-600'
+                        c.is_overdue ? 'text-gov-critical font-bold' : 'text-gov-muted'
                       }`}>
                         {c.deadline_status_label}
                       </span>
@@ -231,13 +231,13 @@ export const CasesPage: React.FC = () => {
                           <GitCompare className="w-3 h-3" /> Overlap
                         </span>
                       ) : (
-                        <span className="text-slate-300">-</span>
+                        <span className="text-gov-muted/50">-</span>
                       )}
                     </td>
                     <td className="py-3 px-3.5 text-right whitespace-nowrap">
                       <Link
                         to={`/cases/${c.id}`}
-                        className="text-xs text-gov-primary hover:text-gov-secondary font-semibold hover:underline"
+                        className="text-xs text-gov-primary hover:text-gov-dark font-semibold hover:underline"
                       >
                         Manage &rarr;
                       </Link>

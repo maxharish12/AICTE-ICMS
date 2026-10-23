@@ -6,29 +6,29 @@
   body {
     @apply bg-gov-bg text-gov-text font-sans antialiased;
     min-height: 100vh;
-    color: #243447;
-    background-color: #F4F6F9;
+    color: #252525;
+    background-color: #F7F7F5;
   }
 
   /* Government Administrative Typography Hierarchy */
   h1 {
-    @apply font-bold tracking-tight text-gov-dark text-2xl;
+    @apply font-bold tracking-tight text-gov-text text-2xl;
   }
 
   h2 {
-    @apply font-semibold tracking-tight text-gov-dark text-lg;
+    @apply font-semibold tracking-tight text-gov-text text-lg;
   }
 
   h3 {
-    @apply font-semibold tracking-tight text-gov-dark text-base;
+    @apply font-semibold tracking-tight text-gov-text text-base;
   }
 
   h4, h5, h6 {
-    @apply font-medium text-gov-dark;
+    @apply font-medium text-gov-text;
   }
 }
 
-/* Centralized Government Administrative Design System Utilities */
+/* Centralized Government Administrative Design System Utilities (Orange & White) */
 @layer components {
   /* Standard Surface Card */
   .gov-card {
@@ -36,11 +36,11 @@
   }
 
   .gov-card-header {
-    @apply px-4 py-3 bg-slate-50 border-b border-gov-border flex items-center justify-between text-xs font-semibold text-slate-800 tracking-wider;
+    @apply px-4 py-3 bg-[#FAF9F7] border-b border-gov-border flex items-center justify-between text-xs font-semibold text-gov-text tracking-wide;
   }
 
   .gov-modal {
-    @apply bg-white rounded-lg shadow-gov-modal border border-slate-300;
+    @apply bg-white rounded-lg shadow-gov-modal border border-gov-border max-h-[90vh] overflow-y-auto;
   }
 
   /* Table System */
@@ -53,15 +53,15 @@
   }
 
   .gov-table-header {
-    @apply bg-slate-50/90 text-slate-700 font-semibold text-[11px] uppercase tracking-wider border-b border-gov-border;
+    @apply bg-[#FAF9F7] text-gov-muted font-semibold text-[11px] uppercase tracking-wider border-b border-gov-border;
   }
 
   .gov-table-header th {
-    @apply py-3 px-3.5;
+    @apply py-3 px-3.5 whitespace-nowrap;
   }
 
   .gov-table-row {
-    @apply hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-b-0;
+    @apply hover:bg-[#FFFDFB] transition-colors border-b border-[#F0EFEA] last:border-b-0;
   }
 
   .gov-table-row td {
@@ -78,27 +78,35 @@
   }
 
   .gov-badge-success {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-[#EBF7F0] text-gov-success border border-gov-success/30 font-semibold;
   }
 
   .gov-badge-warning {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-amber-50 text-amber-800 border border-amber-200 font-semibold;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-[#FFF6E9] text-gov-warning border border-gov-warning/30 font-semibold;
   }
 
   .gov-badge-danger {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-red-50 text-red-800 border border-red-200 font-semibold;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-[#FDF2F2] text-gov-danger border border-gov-danger/30 font-semibold;
   }
 
   .gov-badge-info {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-blue-50 text-gov-info border border-blue-200 font-semibold;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-[#F4F6F8] text-gov-info border border-gov-info/30 font-semibold;
+  }
+
+  .gov-badge-orange {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-[#FFF4E8] text-[#C85D16] border border-[#E87524]/30 font-semibold;
   }
 
   .gov-badge-neutral {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-slate-100 text-slate-700 border border-slate-200 font-medium;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-[#F0EFEA] text-gov-muted border border-gov-border font-medium;
   }
 
   .gov-badge-overlap {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-rose-50 text-rose-800 border border-rose-300 font-bold;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-[#FFF0E6] text-[#C85D16] border border-[#E87524]/40 font-bold;
+  }
+
+  .gov-badge-confidential {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#475569] border border-[#CBD5E1] font-semibold;
   }
 
   /* Inputs & Form Controls */
@@ -116,26 +124,26 @@
   }
 
   .gov-btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-md bg-gov-primary hover:bg-gov-dark text-white shadow-sm cursor-pointer transition-colors disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-md bg-[#E87524] hover:bg-[#C85D16] text-white shadow-sm cursor-pointer transition-colors disabled:opacity-50;
   }
 
   .gov-btn-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 cursor-pointer transition-colors disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-md bg-[#F0EFEA] hover:bg-[#E6E3DF] text-gov-text border border-gov-border cursor-pointer transition-colors disabled:opacity-50;
   }
 
   .gov-btn-outline {
-    @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-md bg-white hover:bg-slate-50 text-gov-primary border border-gov-primary/40 cursor-pointer transition-colors disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-md bg-white hover:bg-[#FFF4E8] text-[#C85D16] border border-[#E87524]/40 cursor-pointer transition-colors disabled:opacity-50;
   }
 
   .gov-btn-danger {
-    @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-md bg-red-700 hover:bg-red-800 text-white shadow-sm cursor-pointer transition-colors disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-md bg-[#C62828] hover:bg-[#A82020] text-white shadow-sm cursor-pointer transition-colors disabled:opacity-50;
   }
 }
 
 /* Indian National Tricolor Ribbon utility */
 .tricolor-ribbon {
   height: 3px;
-  background: linear-gradient(90deg, #FF9933 0%, #FF9933 33.3%, #FFFFFF 33.3%, #FFFFFF 66.6%, #138808 66.6%, #138808 100%);
+  background: linear-gradient(90deg, #E87524 0%, #E87524 33.3%, #FFFFFF 33.3%, #FFFFFF 66.6%, #23834B 66.6%, #23834B 100%);
 }
 
 /* Scrollbar polish */
@@ -144,12 +152,12 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #F7F7F5;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #D9D5CF;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #BAB5AC;
 }

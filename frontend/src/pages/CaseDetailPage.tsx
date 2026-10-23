@@ -19,9 +19,11 @@ import {
   Send,
   Calendar,
 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export const CaseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { showToast } = useToast();
   const [caseItem, setCaseItem] = useState<CaseDetail | null>(null);
   const [bureaus, setBureaus] = useState<Bureau[]>([]);
   const [officers, setOfficers] = useState<User[]>([]);
@@ -66,7 +68,19 @@ export const CaseDetailPage: React.FC = () => {
   useEffect(() => {
     fetchCase();
     apiRequest<Bureau[]>('/admin/bureaus').then(setBureaus).catch(() => {});
-    apiRequest<User[]>('/admin/users').then(setOfficers).catch(() => {});
+    apiRequest<User[]>('/admin/officers').then((data) => {
+      setOfficers(data);
+      if (data.length > 0) {
+        setAssignOfficerId(data[0].id);
+      }
+    }).catch(() => {
+      apiRequest<User[]>('/admin/users').then((data) => {
+        setOfficers(data);
+        if (data.length > 0) {
+          setAssignOfficerId(data[0].id);
+        }
+      }).catch(() => {});
+    });
   }, [id]);
 
   const handleStatusSubmit = async (e: React.FormEvent) => {
@@ -85,9 +99,11 @@ export const CaseDetailPage: React.FC = () => {
       setShowStatusModal(false);
       setStatusRemarks('');
       setNextActionNote('');
+      showToast('success', 'Case Status Updated', `Case status transitioned to "${newStatus}".`);
       fetchCase();
     } catch (err: any) {
       setActionError(err.message || 'Failed to update status');
+      showToast('error', 'Status Update Failed', err.message || 'Failed to update status');
     } finally {
       setSubmitting(false);
     }
@@ -109,9 +125,11 @@ export const CaseDetailPage: React.FC = () => {
       setShowActionModal(false);
       setActionDetails('');
       setNextActionNote('');
+      showToast('success', 'Action Note Recorded', 'Action note added to immutable case history.');
       fetchCase();
     } catch (err: any) {
       setActionError(err.message || 'Failed to record action');
+      showToast('error', 'Action Note Failed', err.message || 'Failed to record action');
     } finally {
       setSubmitting(false);
     }
@@ -120,20 +138,26 @@ export const CaseDetailPage: React.FC = () => {
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionError(null);
+    if (!assignOfficerId) {
+      setActionError('Please select a valid handling officer.');
+      return;
+    }
     setSubmitting(true);
     try {
       await apiRequest(`/cases/${id}/assignments`, {
         method: 'POST',
         body: JSON.stringify({
           officer_id: assignOfficerId,
-          reason: assignReason,
+          reason: assignReason || 'Administrative case assignment',
         }),
       });
       setShowAssignModal(false);
       setAssignReason('');
+      showToast('success', 'Officer Assigned', 'Case responsibility successfully reassigned.');
       fetchCase();
     } catch (err: any) {
       setActionError(err.message || 'Failed to assign officer');
+      showToast('error', 'Assignment Failed', err.message || 'Failed to assign officer');
     } finally {
       setSubmitting(false);
     }
@@ -153,9 +177,11 @@ export const CaseDetailPage: React.FC = () => {
       });
       setShowTransferModal(false);
       setTransferReason('');
+      showToast('success', 'Bureau Transfer Initiated', 'Case successfully transferred to target Bureau.');
       fetchCase();
     } catch (err: any) {
       setActionError(err.message || 'Failed to transfer case');
+      showToast('error', 'Transfer Failed', err.message || 'Failed to transfer case');
     } finally {
       setSubmitting(false);
     }
@@ -163,16 +189,17 @@ export const CaseDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-12 text-center text-slate-500 font-medium">
+      <div className="p-12 text-center text-gov-muted font-medium text-xs">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gov-primary mb-3"></div>
         <p>Loading statutory case dossier...</p>
       </div>
     );
   }
 
+
   if (error || !caseItem) {
     return (
-      <div className="p-6 bg-red-50 text-red-800 rounded-lg border border-red-200">
+      <div className="p-6 bg-red-50 text-gov-critical rounded-lg border border-red-200 text-xs">
         <h3 className="font-bold text-sm">Error Loading Case Record</h3>
         <p className="text-xs mt-1">{error || 'Case record not found in system repository.'}</p>
         <Link to="/cases" className="mt-3 inline-block text-xs font-semibold text-gov-primary hover:underline">
@@ -185,12 +212,12 @@ export const CaseDetailPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Formal Administrative Breadcrumbs */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-gov-muted font-medium">
         <Link to="/" className="hover:text-gov-primary transition-colors">Portal Home</Link>
-        <span className="text-slate-400">/</span>
+        <span className="text-gov-muted/50">/</span>
         <Link to="/cases" className="hover:text-gov-primary transition-colors">Case Dossiers</Link>
-        <span className="text-slate-400">/</span>
-        <span className="text-slate-800 font-semibold font-mono">{caseItem.case_reference}</span>
+        <span className="text-gov-muted/50">/</span>
+        <span className="text-gov-text font-semibold font-mono">{caseItem.case_reference}</span>
       </nav>
 
       {/* Case Header Card */}
@@ -198,10 +225,10 @@ export const CaseDetailPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-xs font-bold text-gov-primary px-2.5 py-1 rounded bg-blue-50 border border-blue-200">
+              <span className="font-mono text-xs font-bold text-gov-dark px-2.5 py-1 rounded bg-gov-light border border-gov-primary/30">
                 {caseItem.case_reference}
               </span>
-              <span className="gov-badge-info font-medium">
+              <span className="gov-badge bg-white text-gov-dark border border-gov-border font-medium">
                 Handling Bureau: <strong>{caseItem.current_bureau_name}</strong>
               </span>
               <span className={`px-2.5 py-0.5 rounded text-xs font-semibold ${
@@ -219,58 +246,61 @@ export const CaseDetailPage: React.FC = () => {
                 Priority: {caseItem.priority}
               </span>
               {caseItem.has_potential_overlap && (
-                <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-amber-500 text-white flex items-center gap-1 shadow-xs">
-                  <GitCompare className="w-3.5 h-3.5" /> Overlap Detected
+                <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-[#FFF0E6] text-gov-dark border border-gov-primary/50 flex items-center gap-1 shadow-gov-sm">
+                  <GitCompare className="w-3.5 h-3.5 text-gov-primary" /> Overlap Detected
                 </span>
               )}
             </div>
             
-            <h1 className="text-xl lg:text-2xl font-bold text-slate-900 tracking-tight">{caseItem.title}</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-gov-text tracking-tight">{caseItem.title}</h1>
             
-            <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-600">
+            <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-gov-muted">
               <span className="flex items-center gap-1.5">
-                <Building className="w-3.5 h-3.5 text-slate-400" />
-                <span>Institution: <strong className="text-slate-800">{caseItem.institution_name}</strong></span>
+                <Building className="w-3.5 h-3.5 text-gov-muted" />
+                <span>Institution: <strong className="text-gov-text">{caseItem.institution_name}</strong></span>
               </span>
               <span className="text-slate-300">&bull;</span>
-              <span className="font-mono">Permanent ID: <strong className="text-slate-800">{caseItem.permanent_id}</strong></span>
+              <span className="font-mono">Permanent ID: <strong className="text-gov-text">{caseItem.permanent_id}</strong></span>
               <span className="text-slate-300">&bull;</span>
               <span className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span>Received: <strong>{new Date(caseItem.received_at).toLocaleDateString()}</strong></span>
+                <Calendar className="w-3.5 h-3.5 text-gov-muted" />
+                <span>Received: <strong className="text-gov-text">{new Date(caseItem.received_at).toLocaleDateString()}</strong></span>
               </span>
             </div>
           </div>
 
           {/* Action Buttons Toolbar */}
-          <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+          <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-gov-border">
             <button
               onClick={() => setShowStatusModal(true)}
-              className="gov-btn-primary text-xs"
+              className="gov-btn gov-btn-primary text-xs"
             >
               Update Status
             </button>
             <button
               onClick={() => setShowActionModal(true)}
-              className="gov-btn-secondary text-xs"
+              className="gov-btn gov-btn-secondary text-xs"
             >
               Add Action Note
             </button>
             <button
               onClick={() => setShowAssignModal(true)}
-              className="gov-btn-secondary text-xs"
+              className="gov-btn gov-btn-secondary text-xs"
             >
               Assign Officer
             </button>
             <button
               onClick={() => setShowTransferModal(true)}
-              className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-md font-semibold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="gov-btn gov-btn-secondary text-xs"
             >
               <ArrowRightLeft className="w-3.5 h-3.5" /> Transfer Bureau
             </button>
           </div>
         </div>
       </div>
+
+
+
 
       {/* Main Grid: Details & Workflow History */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -486,28 +516,28 @@ export const CaseDetailPage: React.FC = () => {
       {/* Modal 1: Update Status */}
       {showStatusModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="gov-modal max-w-lg w-full p-6 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
+          <div className="bg-white rounded-lg shadow-gov-modal max-w-lg w-full p-6 border border-gov-border animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-gov-border">
+              <h3 className="font-bold text-sm text-gov-text uppercase tracking-wide flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-gov-primary" />
                 Update Statutory Case Status
               </h3>
-              <button onClick={() => setShowStatusModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button onClick={() => setShowStatusModal(false)} className="text-gov-muted hover:text-gov-text cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             {actionError && (
-              <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-md">
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 text-gov-critical text-xs rounded-md">
                 {actionError}
               </div>
             )}
             <form onSubmit={handleStatusSubmit} className="mt-4 space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Target Administrative Status *</label>
+                <label className="block font-bold text-gov-text mb-1">Target Administrative Status *</label>
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value)}
-                  className="gov-select"
+                  className="gov-select w-full"
                 >
                   <option value="Acknowledged">Acknowledged</option>
                   <option value="Under Scrutiny">Under Scrutiny</option>
@@ -524,7 +554,7 @@ export const CaseDetailPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
+                <label className="block font-bold text-gov-text mb-1">
                   Official Justification / Status Remarks *
                 </label>
                 <textarea
@@ -538,7 +568,7 @@ export const CaseDetailPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Next Action Note (Optional)</label>
+                <label className="block font-bold text-gov-text mb-1">Next Action Note (Optional)</label>
                 <input
                   type="text"
                   placeholder="e.g. Schedule hearing before Standing Inquiry Committee"
@@ -548,18 +578,18 @@ export const CaseDetailPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+              <div className="flex justify-end gap-2 pt-4 border-t border-gov-border">
                 <button
                   type="button"
                   onClick={() => setShowStatusModal(false)}
-                  className="gov-btn-secondary"
+                  className="gov-btn gov-btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="gov-btn-primary"
+                  className="gov-btn gov-btn-primary"
                 >
                   {submitting ? 'Updating Status...' : 'Commit Status Update'}
                 </button>
@@ -572,28 +602,28 @@ export const CaseDetailPage: React.FC = () => {
       {/* Modal 2: Add Action Note */}
       {showActionModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="gov-modal max-w-lg w-full p-6 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
+          <div className="bg-white rounded-lg shadow-gov-modal max-w-lg w-full p-6 border border-gov-border animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-gov-border">
+              <h3 className="font-bold text-sm text-gov-text uppercase tracking-wide flex items-center gap-2">
                 <FileText className="w-4 h-4 text-gov-primary" />
                 Record Administrative Action Note
               </h3>
-              <button onClick={() => setShowActionModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button onClick={() => setShowActionModal(false)} className="text-gov-muted hover:text-gov-text cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             {actionError && (
-              <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-md">
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 text-gov-critical text-xs rounded-md">
                 {actionError}
               </div>
             )}
             <form onSubmit={handleActionSubmit} className="mt-4 space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Action Category *</label>
+                <label className="block font-bold text-gov-text mb-1">Action Category *</label>
                 <select
                   value={actionType}
                   onChange={(e) => setActionType(e.target.value)}
-                  className="gov-select"
+                  className="gov-select w-full"
                 >
                   <option value="SCRUTINY_NOTE">Scrutiny Note</option>
                   <option value="EVIDENCE_VERIFIED">Evidence Verified</option>
@@ -605,7 +635,7 @@ export const CaseDetailPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Action Record Details *</label>
+                <label className="block font-bold text-gov-text mb-1">Action Record Details *</label>
                 <textarea
                   required
                   rows={4}
@@ -616,18 +646,18 @@ export const CaseDetailPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+              <div className="flex justify-end gap-2 pt-4 border-t border-gov-border">
                 <button
                   type="button"
                   onClick={() => setShowActionModal(false)}
-                  className="gov-btn-secondary"
+                  className="gov-btn gov-btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="gov-btn-primary"
+                  className="gov-btn gov-btn-primary"
                 >
                   {submitting ? 'Recording Note...' : 'Record Action Note'}
                 </button>
@@ -640,28 +670,28 @@ export const CaseDetailPage: React.FC = () => {
       {/* Modal 3: Assign Officer */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="gov-modal max-w-lg w-full p-6 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
+          <div className="bg-white rounded-lg shadow-gov-modal max-w-lg w-full p-6 border border-gov-border animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-gov-border">
+              <h3 className="font-bold text-sm text-gov-text uppercase tracking-wide flex items-center gap-2">
                 <UserIcon className="w-4 h-4 text-gov-primary" />
                 Assign / Reassign Case Officer
               </h3>
-              <button onClick={() => setShowAssignModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button onClick={() => setShowAssignModal(false)} className="text-gov-muted hover:text-gov-text cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             {actionError && (
-              <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-md">
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 text-gov-critical text-xs rounded-md">
                 {actionError}
               </div>
             )}
             <form onSubmit={handleAssignSubmit} className="mt-4 space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Eligible Handling Officer *</label>
+                <label className="block font-bold text-gov-text mb-1">Eligible Handling Officer *</label>
                 <select
                   value={assignOfficerId}
                   onChange={(e) => setAssignOfficerId(parseInt(e.target.value))}
-                  className="gov-select"
+                  className="gov-select w-full"
                 >
                   {officers.map((off) => (
                     <option key={off.id} value={off.id}>
@@ -672,7 +702,7 @@ export const CaseDetailPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
+                <label className="block font-bold text-gov-text mb-1">
                   Assignment Order / Statutory Directive *
                 </label>
                 <textarea
@@ -685,18 +715,18 @@ export const CaseDetailPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+              <div className="flex justify-end gap-2 pt-4 border-t border-gov-border">
                 <button
                   type="button"
                   onClick={() => setShowAssignModal(false)}
-                  className="gov-btn-secondary"
+                  className="gov-btn gov-btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="gov-btn-primary"
+                  className="gov-btn gov-btn-primary"
                 >
                   {submitting ? 'Assigning Officer...' : 'Issue Assignment Order'}
                 </button>
@@ -709,30 +739,30 @@ export const CaseDetailPage: React.FC = () => {
       {/* Modal 4: Inter-Bureau Transfer */}
       {showTransferModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="gov-modal max-w-lg w-full p-6 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
-                <ArrowRightLeft className="w-4 h-4 text-indigo-700" />
+          <div className="bg-white rounded-lg shadow-gov-modal max-w-lg w-full p-6 border border-gov-border animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-gov-border">
+              <h3 className="font-bold text-sm text-gov-text uppercase tracking-wide flex items-center gap-2">
+                <ArrowRightLeft className="w-4 h-4 text-gov-primary" />
                 Inter-Bureau Statutory Transfer
               </h3>
-              <button onClick={() => setShowTransferModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button onClick={() => setShowTransferModal(false)} className="text-gov-muted hover:text-gov-text cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             {actionError && (
-              <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-md">
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 text-gov-critical text-xs rounded-md">
                 {actionError}
               </div>
             )}
             <form onSubmit={handleTransferSubmit} className="mt-4 space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
+                <label className="block font-bold text-gov-text mb-1">
                   Destination AICTE Bureau / Cell *
                 </label>
                 <select
                   value={transferBureauId}
                   onChange={(e) => setTransferBureauId(parseInt(e.target.value))}
-                  className="gov-select"
+                  className="gov-select w-full"
                 >
                   {bureaus
                     .filter((b) => b.id !== caseItem.current_bureau_id)
@@ -745,7 +775,7 @@ export const CaseDetailPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
+                <label className="block font-bold text-gov-text mb-1">
                   Transfer Rationale / Statutory Jurisdiction Justification *
                 </label>
                 <textarea
@@ -758,18 +788,18 @@ export const CaseDetailPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+              <div className="flex justify-end gap-2 pt-4 border-t border-gov-border">
                 <button
                   type="button"
                   onClick={() => setShowTransferModal(false)}
-                  className="gov-btn-secondary"
+                  className="gov-btn gov-btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="gov-btn-primary bg-indigo-700 hover:bg-indigo-800"
+                  className="gov-btn gov-btn-primary"
                 >
                   {submitting ? 'Transferring Case...' : 'Authorize Transfer'}
                 </button>
@@ -781,3 +811,4 @@ export const CaseDetailPage: React.FC = () => {
     </div>
   );
 };
+

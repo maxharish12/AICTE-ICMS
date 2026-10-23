@@ -74,65 +74,107 @@ export const InstitutionDetailPage: React.FC = () => {
       <div className="gov-card p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gov-border pb-5">
           <div className="flex items-start gap-4">
-            <div className="w-13 h-13 rounded-md bg-gradient-to-br from-gov-primary to-gov-dark text-white flex items-center justify-center shrink-0 shadow-sm border border-slate-600">
-              <Building className="w-7 h-7 text-amber-400" />
+            <div className="w-13 h-13 rounded-md bg-gov-light text-gov-primary flex items-center justify-center shrink-0 shadow-gov-sm border border-gov-primary/30">
+              <Building className="w-7 h-7 text-gov-primary" />
             </div>
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-bold text-gov-dark">{institution.institution_name}</h1>
-                <span className="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-gov-secondary text-white shadow-xs">
-                  {institution.permanent_id}
+                <h1 className="text-xl sm:text-2xl font-bold text-gov-text">{institution.institution_name}</h1>
+                
+                {/* College ID */}
+                <span className="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-slate-100 text-slate-800 border border-slate-300 shadow-xs">
+                  College ID: {institution.college_id || 'Not Available'}
                 </span>
+
+                {/* AICTE Permanent ID */}
+                <span className={`px-2.5 py-0.5 rounded text-xs font-mono font-bold border shadow-xs ${
+                  institution.permanent_id
+                    ? 'bg-gov-light text-gov-dark border-gov-primary/30'
+                    : 'bg-amber-50 text-amber-900 border-amber-300'
+                }`}>
+                  AICTE Perm ID: {institution.permanent_id || 'Not Available'}
+                </span>
+
                 <span className="gov-badge gov-badge-success">
                   <ShieldCheck className="w-3.5 h-3.5" /> {institution.verification_status}
                 </span>
               </div>
-              <p className="text-xs text-slate-600 mt-1.5 flex items-center gap-2 flex-wrap">
-                <span className="flex items-center gap-1 text-slate-700 font-medium">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+              <p className="text-xs text-gov-muted mt-1.5 flex items-center gap-2 flex-wrap">
+                <span className="flex items-center gap-1 text-gov-text font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-gov-muted" />
                   {institution.city}, {institution.district}, {institution.state} &bull; PIN: {institution.postal_code}
                 </span>
                 <span className="text-slate-300">&bull;</span>
-                <span>Category: <strong className="text-slate-800">{institution.institution_type}</strong></span>
+                <span>Discipline: <strong className="text-gov-text">{institution.institution_type}</strong></span>
                 <span className="text-slate-300">&bull;</span>
-                <span>Jurisdiction: <strong className="text-slate-800">{institution.region?.name || 'Central Head Office'}</strong></span>
+                <span>Jurisdiction: <strong className="text-gov-text">{institution.region?.name || 'Central Head Office'}</strong></span>
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
             <Link
-              to={`/complaints/new?institution_id=${institution.id}`}
-              className="gov-btn gov-btn-primary"
+              to={`/complaints`}
+              className="gov-btn gov-btn-primary text-xs"
             >
               <span>+ Register Complaint</span>
             </Link>
           </div>
         </div>
 
-        {/* 4 Metric Summary Chips */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mt-5">
-          <div className="p-3.5 bg-slate-50 rounded-md border border-gov-border">
-            <span className="text-[11px] font-bold text-slate-500 block uppercase tracking-wider">Total Complaints</span>
-            <span className="text-2xl font-bold text-gov-dark font-mono mt-1 block">{institution.total_complaints}</span>
-            <span className="text-[10px] text-slate-400">All-time received</span>
+        {/* 6 Metric Breakdown Chips */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-5">
+          <div
+            onClick={() => setActiveTab('complaints')}
+            className="p-3 bg-white rounded-md border border-gov-border shadow-gov-sm cursor-pointer hover:border-gov-primary transition-all"
+          >
+            <span className="text-[10px] font-bold text-gov-muted block uppercase tracking-wider">Total Complaints</span>
+            <span className="text-xl font-bold text-gov-text font-mono mt-0.5 block">{institution.total_complaints}</span>
+            <span className="text-[10px] text-gov-muted">All-time dockets</span>
           </div>
-          <div className="p-3.5 bg-blue-50/50 rounded-md border border-blue-200">
-            <span className="text-[11px] font-bold text-gov-info block uppercase tracking-wider">Active Cases</span>
-            <span className="text-2xl font-bold text-gov-primary font-mono mt-1 block">{institution.active_cases}</span>
-            <span className="text-[10px] text-blue-600/80">Under formal inquiry</span>
+          <div
+            onClick={() => setActiveTab('cases')}
+            className="p-3 bg-blue-50 rounded-md border border-blue-200 shadow-gov-sm cursor-pointer hover:border-blue-400 transition-all"
+          >
+            <span className="text-[10px] font-bold text-blue-900 block uppercase tracking-wider">Open Cases</span>
+            <span className="text-xl font-bold text-blue-900 font-mono mt-0.5 block">{institution.open_cases ?? institution.active_cases}</span>
+            <span className="text-[10px] text-blue-700">Initial scrutiny</span>
           </div>
-          <div className="p-3.5 bg-red-50/50 rounded-md border border-red-200">
-            <span className="text-[11px] font-bold text-gov-danger block uppercase tracking-wider">Overdue SLA</span>
-            <span className="text-2xl font-bold text-red-900 font-mono mt-1 block">{institution.overdue_cases}</span>
+          <div
+            onClick={() => setActiveTab('cases')}
+            className="p-3 bg-amber-50 rounded-md border border-amber-200 shadow-gov-sm cursor-pointer hover:border-amber-400 transition-all"
+          >
+            <span className="text-[10px] font-bold text-amber-900 block uppercase tracking-wider">Pending Action</span>
+            <span className="text-xl font-bold text-amber-900 font-mono mt-0.5 block">{institution.pending_cases ?? 0}</span>
+            <span className="text-[10px] text-amber-700">Inquiry ongoing</span>
+          </div>
+          <div
+            onClick={() => setActiveTab('cases')}
+            className="p-3 bg-green-50 rounded-md border border-green-200 shadow-gov-sm cursor-pointer hover:border-green-400 transition-all"
+          >
+            <span className="text-[10px] font-bold text-green-900 block uppercase tracking-wider">Resolved / Disposed</span>
+            <span className="text-xl font-bold text-green-900 font-mono mt-0.5 block">{institution.resolved_cases ?? 0}</span>
+            <span className="text-[10px] text-green-700">Action completed</span>
+          </div>
+          <div
+            onClick={() => setActiveTab('cases')}
+            className="p-3 bg-[#FDF2F2] rounded-md border border-red-200 shadow-gov-sm cursor-pointer hover:border-red-400 transition-all"
+          >
+            <span className="text-[10px] font-bold text-gov-critical block uppercase tracking-wider">Overdue SLA</span>
+            <span className="text-xl font-bold text-gov-critical font-mono mt-0.5 block">{institution.overdue_cases}</span>
             <span className="text-[10px] text-red-600/80">Exceeded statutory limit</span>
           </div>
-          <div className={`p-3.5 rounded-md border ${hasOverlap ? 'bg-rose-50/70 border-rose-300' : 'bg-slate-50 border-gov-border'}`}>
-            <span className="text-[11px] font-bold text-slate-700 block uppercase tracking-wider">Overlap Advisories</span>
-            <span className={`text-2xl font-bold font-mono mt-1 block ${hasOverlap ? 'text-red-900 font-extrabold' : 'text-slate-400'}`}>
+          <div
+            onClick={() => setActiveTab('overlaps')}
+            className={`p-3 rounded-md border shadow-gov-sm cursor-pointer hover:border-gov-primary transition-all ${
+              hasOverlap ? 'bg-[#FFF0E6] border-gov-primary/50' : 'bg-white border-gov-border'
+            }`}
+          >
+            <span className="text-[10px] font-bold text-gov-text block uppercase tracking-wider">Overlap Advisories</span>
+            <span className={`text-xl font-bold font-mono mt-0.5 block ${hasOverlap ? 'text-gov-dark font-extrabold' : 'text-gov-muted'}`}>
               {institution.potential_overlaps}
             </span>
-            <span className="text-[10px] text-slate-500">Cross-bureau coordination</span>
+            <span className="text-[10px] text-gov-muted">Cross-bureau flags</span>
           </div>
         </div>
       </div>

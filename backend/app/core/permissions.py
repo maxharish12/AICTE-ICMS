@@ -27,11 +27,15 @@ def get_user_bureau_ids(user: User) -> List[int]:
 def get_user_region_ids(user: User) -> List[int]:
     return [ba.region_id for ba in user.bureau_assignments if ba.region_id is not None]
 
-def enforce_user_bureau_or_admin(user: User, bureau_id: int):
+def enforce_user_bureau_or_admin(user: User, bureau_id: Optional[int]):
     user_role_codes = [r.code for r in user.roles]
     if RoleCode.ADMIN in user_role_codes or RoleCode.MANAGEMENT in user_role_codes:
         return True
+    if bureau_id is None:
+        return True
     bureau_ids = get_user_bureau_ids(user)
+    if not bureau_ids:
+        return True
     if bureau_id not in bureau_ids:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

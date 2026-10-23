@@ -36,14 +36,20 @@ export const AuditTrailPage: React.FC = () => {
       <div className="gov-card p-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-gov-primary"></span>
+              <span className="text-[11px] font-bold text-gov-muted uppercase tracking-widest font-mono">
+                SECURITY & ACCOUNTABILITY
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gov-text tracking-tight mt-1">
               System Security & Statutory Audit Trail
             </h1>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-gov-muted max-w-3xl">
               Immutable statutory record of all authentications, case transitions, bureau reallocations, and coordination rulings.
             </p>
           </div>
-          <span className="gov-badge-neutral font-mono text-xs self-start sm:self-auto">
+          <span className="bg-gov-light text-gov-dark px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gov-primary/30 self-start sm:self-auto">
             Tamper-Evident Ledger
           </span>
         </div>
@@ -56,7 +62,7 @@ export const AuditTrailPage: React.FC = () => {
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="gov-select"
+              className="gov-select w-full"
             >
               <option value="">All Action Categories</option>
               <option value="LOGIN_SUCCESS">LOGIN_SUCCESS</option>
@@ -75,7 +81,7 @@ export const AuditTrailPage: React.FC = () => {
             <select
               value={recordFilter}
               onChange={(e) => setRecordFilter(e.target.value)}
-              className="gov-select"
+              className="gov-select w-full"
             >
               <option value="">All Record Entities</option>
               <option value="User">User</option>
@@ -91,7 +97,7 @@ export const AuditTrailPage: React.FC = () => {
             <select
               value={outcomeFilter}
               onChange={(e) => setOutcomeFilter(e.target.value)}
-              className="gov-select"
+              className="gov-select w-full"
             >
               <option value="">All Outcomes</option>
               <option value="SUCCESS">SUCCESS</option>
@@ -104,12 +110,12 @@ export const AuditTrailPage: React.FC = () => {
 
       {/* Audit Log Table */}
       <div className="gov-card overflow-hidden">
-        <div className="gov-card-header p-4 bg-slate-50/80 border-b border-gov-border flex items-center justify-between">
-          <span className="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-2">
+        <div className="gov-card-header p-4 bg-[#FAF9F7] border-b border-gov-border flex items-center justify-between">
+          <span className="font-bold text-xs text-gov-text uppercase tracking-wider flex items-center gap-2">
             <History className="w-4 h-4 text-gov-primary" />
             Audit Ledger ({logs.length} Events)
           </span>
-          <span className="text-[11px] text-slate-500 font-mono">UTC Event Synchronization</span>
+          <span className="text-[11px] text-gov-muted font-mono">UTC Event Synchronization</span>
         </div>
         <div className="gov-table-container">
           <table className="gov-table">
@@ -127,35 +133,35 @@ export const AuditTrailPage: React.FC = () => {
             <tbody className="font-mono text-[11px]">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500 font-sans">
+                  <td colSpan={7} className="py-8 text-center text-gov-muted font-sans text-xs">
                     <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-gov-primary mb-2"></div>
                     <p>Retrieving immutable audit logs...</p>
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500 font-sans">
+                  <td colSpan={7} className="py-8 text-center text-gov-muted font-sans text-xs">
                     No matching audit log records found for selected filter criteria.
                   </td>
                 </tr>
               ) : (
                 logs.map((log) => (
                   <tr key={log.id} className="gov-table-row">
-                    <td className="text-slate-600 whitespace-nowrap">
+                    <td className="text-gov-muted whitespace-nowrap">
                       {new Date(log.created_at).toISOString().replace('T', ' ').slice(0, 19)}
                     </td>
-                    <td className="font-semibold text-slate-900 font-sans text-xs">
+                    <td className="font-semibold text-gov-text font-sans text-xs">
                       {log.user_name || 'System / Daemon'}
                     </td>
-                    <td className="font-bold text-gov-primary">{log.action_type}</td>
-                    <td className="text-slate-700 font-sans text-xs">{log.record_type}</td>
-                    <td className="text-slate-600">{log.record_id || '-'}</td>
+                    <td className="font-bold text-gov-dark">{log.action_type}</td>
+                    <td className="text-gov-text font-sans text-xs">{log.record_type}</td>
+                    <td className="text-gov-muted">{log.record_id || '-'}</td>
                     <td className="font-sans">
                       <span className={log.outcome === 'SUCCESS' ? 'gov-badge-success' : 'gov-badge-danger'}>
                         {log.outcome}
                       </span>
                     </td>
-                    <td className="text-slate-600 font-mono text-[11px] max-w-[350px] truncate" title={log.metadata_json || ''}>
+                    <td className="text-gov-muted font-mono text-[11px] max-w-[350px] truncate" title={log.metadata_json || ''}>
                       {log.metadata_json || '-'}
                     </td>
                   </tr>
@@ -168,3 +174,4 @@ export const AuditTrailPage: React.FC = () => {
     </div>
   );
 };
+

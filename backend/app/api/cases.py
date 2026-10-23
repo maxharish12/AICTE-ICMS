@@ -24,7 +24,9 @@ def enrich_case_out(case: Case) -> CaseOut:
     now = datetime.now(timezone.utc)
     out = CaseOut.model_validate(case)
     out.institution_name = case.institution.institution_name if case.institution else "N/A"
-    out.permanent_id = case.institution.permanent_id if case.institution else "N/A"
+    out.permanent_id = case.institution.permanent_id if (case.institution and case.institution.permanent_id) else "Not Available"
+    out.aicte_permanent_id = case.institution.permanent_id if (case.institution and case.institution.permanent_id) else "Not Available"
+    out.college_id = case.institution.college_id if (case.institution and case.institution.college_id) else "Not Available"
     out.institution_region = case.institution.region.name if (case.institution and case.institution.region) else None
     out.current_bureau_name = case.current_bureau.name if case.current_bureau else "N/A"
     out.current_bureau_code = case.current_bureau.code if case.current_bureau else "N/A"
@@ -45,8 +47,17 @@ def enrich_case_out(case: Case) -> CaseOut:
 
     # Overlap indicator
     overlap = case.institution.overlap_flags if case.institution else []
-    active_overlaps = [f for f in overlap if f.relationship_state in ["POTENTIAL_OVERLAP", "UNDER_REVIEW", "COORDINATION_REQUESTED", "JOINT_ACTION_IN_PROGRESS", "ESCALATED"]]
+    active_overlaps = [f for f in overlap if f.relationship_state in ["POTENTIAL_OVERLAP", "UNDER_REVIEW", "COORDINATION_REQUESTED", "CONFIRMED_RELATED", "JOINT_ACTION_IN_PROGRESS", "ESCALATED"]]
     out.has_potential_overlap = len(active_overlaps) > 0
+    if active_overlaps:
+        out.overlap_reason = active_overlaps[0].detection_reason
+        out.overlap_confidence = active_overlaps[0].confidence_score
+
+    # SafeVoice Confidentiality indicator
+    out.is_confidential = any(
+        (l.complaint and l.complaint.sensitivity_classification == "CONFIDENTIAL")
+        for l in case.complaint_links
+    )
 
     # Linked complaints
     out.linked_complaint_ids = [l.complaint_id for l in case.complaint_links]
@@ -58,6 +69,8 @@ def enrich_case_out(case: Case) -> CaseOut:
 def list_cases(
     search: Optional[str] = Query(None),
     institution_id: Optional[int] = Query(None),
+    college_id: Optional[str] = Query(None),
+    permanent_id: Optional[str] = Query(None),
     bureau_id: Optional[int] = Query(None),
     region_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
@@ -65,6 +78,7 @@ def list_cases(
     officer_id: Optional[int] = Query(None),
     is_overdue: Optional[bool] = Query(None),
     has_overlap: Optional[bool] = Query(None),
+    is_confidential: Optional[bool] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -74,17 +88,35 @@ def list_cases(
 
     # Regional / Bureau scoping
     user_roles = [r.code for r in current_user.roles]
+    joined_institution = False
     if RoleCode.REGIONAL_OFFICE in user_roles and RoleCode.ADMIN not in user_roles:
         reg_ids = [ba.region_id for ba in current_user.bureau_assignments if ba.region_id is not None]
         if reg_ids:
-            query = query.join(Institution).filter(Institution.region_id.in_(reg_ids))
+            query = query.join(Institution)
+            joined_institution = True
+            query = query.filter(Institution.region_id.in_(reg_ids))
+
+    if college_id and college_id.strip():
+        if not joined_institution:
+            query = query.join(Institution)
+            joined_institution = True
+        query = query.filter(Institution.college_id.ilike(college_id.strip()))
+
+    if permanent_id and permanent_id.strip():
+        if not joined_institution:
+            query = query.join(Institution)
+            joined_institution = True
+        query = query.filter(Institution.permanent_id.ilike(permanent_id.strip()))
 
     if institution_id:
         query = query.filter(Case.institution_id == institution_id)
     if bureau_id:
         query = query.filter(Case.current_bureau_id == bureau_id)
     if region_id and RoleCode.REGIONAL_OFFICE not in user_roles:
-        query = query.join(Institution).filter(Institution.region_id == region_id)
+        if not joined_institution:
+            query = query.join(Institution)
+            joined_institution = True
+        query = query.filter(Institution.region_id == region_id)
     if status and status != "ALL":
         query = query.filter(Case.status == status)
     if priority and priority != "ALL":
@@ -100,14 +132,18 @@ def list_cases(
             Case.status.notin_(["Disposed", "Closed – Action Taken", "Closed – No Action Required"])
         )
 
-    if search:
+    if search and search.strip():
         term = f"%{search.strip()}%"
-        query = query.join(Institution).filter(
+        if not joined_institution:
+            query = query.join(Institution)
+            joined_institution = True
+        query = query.filter(
             or_(
                 Case.case_reference.ilike(term),
                 Case.title.ilike(term),
                 Institution.institution_name.ilike(term),
-                Institution.permanent_id.ilike(term)
+                Institution.permanent_id.ilike(term),
+                Institution.college_id.ilike(term)
             )
         )
 
@@ -116,6 +152,21 @@ def list_cases(
 
     if has_overlap is not None:
         results = [r for r in results if r.has_potential_overlap == has_overlap]
+
+    if is_confidential is not None:
+        # Enforce SafeVoice access check
+        can_view_all_confidential = (
+            RoleCode.ADMIN in user_roles
+            or RoleCode.MANAGEMENT in user_roles
+            or RoleCode.BUREAU_HEAD in user_roles
+        )
+        if is_confidential:
+            if can_view_all_confidential:
+                results = [r for r in results if r.is_confidential]
+            else:
+                results = [r for r in results if r.is_confidential and (r.current_officer_id == current_user.id)]
+        else:
+            results = [r for r in results if not r.is_confidential]
 
     return results
 

@@ -1,0 +1,18 @@
+services:
+  # Web Service running the Unified Production Container
+  - type: web
+    name: aicte-icms
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:///./aicte_icms.db
+      - key: CORS_ORIGINS
+        value: "*"

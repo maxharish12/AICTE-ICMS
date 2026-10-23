@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import json
 from sqlalchemy import (
-    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Index, UniqueConstraint, Table
+    Column, Integer, String, Text, Boolean, DateTime, Float, ForeignKey, Index, UniqueConstraint, Table
 )
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
@@ -103,7 +103,8 @@ class Institution(Base):
     __tablename__ = "institutions"
 
     id = Column(Integer, primary_key=True, index=True)
-    permanent_id = Column(String(50), unique=True, nullable=False, index=True) # AICTE Permanent ID e.g. "DEMO-AICTE-001"
+    college_id = Column(String(50), unique=True, nullable=True, index=True) # Internal College ID e.g. "CLG-1001"
+    permanent_id = Column(String(50), unique=True, nullable=True, index=True) # AICTE Permanent ID e.g. "DEMO-AICTE-001"
     institution_name = Column(String(255), nullable=False, index=True)
     institution_type = Column(String(100), nullable=False) # "Engineering & Technology", "Management", "Pharmacy", "Polytechnic", etc.
     address = Column(Text, nullable=False)
@@ -150,6 +151,7 @@ class Complaint(Base):
     category_id = Column(Integer, ForeignKey("complaint_categories.id", ondelete="RESTRICT"), nullable=False)
     complainant_type = Column(String(50), nullable=False) # "STUDENT", "FACULTY", "PARENT", "STAFF", "CITIZEN", "ANONYMOUS"
     source = Column(String(50), default="PORTAL", nullable=False) # "PORTAL", "EMAIL", "PHYSICAL", "CPGRAMS", "MEDIA"
+    incident_date = Column(DateTime(timezone=True), nullable=True)
     received_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     status = Column(String(50), default="REGISTERED", nullable=False, index=True) # "REGISTERED", "CASE_LINKED", "DISPOSED", "REJECTED"
     sensitivity_classification = Column(String(30), default="NORMAL", nullable=False) # "NORMAL", "CONFIDENTIAL", "HIGH_PRIORITY"
@@ -298,6 +300,7 @@ class OverlapFlag(Base):
     detection_type = Column(String(50), default="DETERMINISTIC_PERMANENT_ID", nullable=False)
     detection_reason = Column(Text, nullable=False)
     relationship_state = Column(String(50), default="POTENTIAL_OVERLAP", nullable=False, index=True)
+    confidence_score = Column(Float, default=0.85, nullable=True)
     # States: "POTENTIAL_OVERLAP", "UNDER_REVIEW", "COORDINATION_REQUESTED", "CONFIRMED_RELATED", "NOT_RELATED", "JOINT_ACTION_IN_PROGRESS", "COORDINATION_COMPLETED", "ESCALATED"
     first_detected_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     last_checked_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
@@ -321,6 +324,7 @@ class CaseRelationship(Base):
     relationship_type = Column(String(50), default="CROSS_BUREAU_OVERLAP", nullable=False)
     relationship_state = Column(String(50), default="POTENTIAL_OVERLAP", nullable=False) # Synchronized with OverlapFlag
     reason = Column(Text, nullable=True)
+    confidence_score = Column(Float, default=0.85, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)

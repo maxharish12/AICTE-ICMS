@@ -14,9 +14,11 @@ import {
   ExternalLink,
   CheckCircle2,
 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export const ComplaintDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { showToast } = useToast();
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,31 +55,32 @@ export const ComplaintDetailPage: React.FC = () => {
         body: formData,
       });
       setUploadSuccess(`File "${file.name}" uploaded successfully.`);
+      showToast('success', 'Document Uploaded', `Evidentiary record "${file.name}" linked.`);
       fetchComplaint();
     } catch (err: any) {
-      alert(err.message || 'Upload failed');
+      showToast('error', 'Upload Failed', err.message || 'Upload failed');
     } finally {
       setUploading(false);
     }
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-slate-400">Loading complaint details...</div>;
+    return <div className="p-12 text-center text-gov-muted text-xs">Loading complaint details...</div>;
   }
 
   if (error || !complaint) {
-    return <div className="p-6 bg-red-50 text-red-700 rounded border border-red-200">{error || 'Complaint not found'}</div>;
+    return <div className="p-6 bg-red-50 text-gov-critical rounded border border-red-200 text-xs">{error || 'Complaint not found'}</div>;
   }
 
   return (
     <div className="space-y-6">
       {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+      <div className="flex items-center gap-2 text-xs text-gov-muted font-medium">
         <Link to="/" className="hover:text-gov-primary">Dashboard</Link>
         <span>&rsaquo;</span>
         <Link to="/complaints" className="hover:text-gov-primary">Grievances & Complaints</Link>
         <span>&rsaquo;</span>
-        <span className="text-slate-800 font-semibold">{complaint.complaint_reference}</span>
+        <span className="text-gov-text font-semibold">{complaint.complaint_reference}</span>
       </div>
 
       {/* Grievance Header Banner */}
@@ -85,38 +88,39 @@ export const ComplaintDetailPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-xs font-bold text-gov-primary px-2.5 py-0.5 rounded bg-blue-50 border border-blue-200">
+              <span className="font-mono text-xs font-bold text-gov-dark px-2.5 py-0.5 rounded bg-gov-light border border-gov-primary/30">
                 {complaint.complaint_reference}
               </span>
-              <span className="gov-badge gov-badge-info">
+              <span className="gov-badge bg-gov-light text-gov-dark border border-gov-primary/30 font-semibold">
                 Status: {complaint.status}
               </span>
-              <span className="gov-badge gov-badge-neutral">
+              <span className="gov-badge gov-badge-neutral font-medium">
                 Sensitivity: {complaint.sensitivity_classification}
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gov-dark mt-2.5">{complaint.title}</h1>
-            <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-3 flex-wrap">
-              <span>Receipt Date: <strong>{new Date(complaint.received_at).toLocaleDateString()}</strong></span>
+            <h1 className="text-xl sm:text-2xl font-bold text-gov-text mt-2.5">{complaint.title}</h1>
+            <p className="text-xs text-gov-muted mt-1.5 flex items-center gap-3 flex-wrap">
+              <span>Receipt Date: <strong className="text-gov-text">{new Date(complaint.received_at).toLocaleDateString()}</strong></span>
               <span>&bull;</span>
-              <span>Submission Channel: <strong>{complaint.source}</strong></span>
+              <span>Submission Channel: <strong className="text-gov-text">{complaint.source}</strong></span>
               <span>&bull;</span>
-              <span>Complainant Category: <strong>{complaint.complainant_type}</strong></span>
+              <span>Complainant Category: <strong className="text-gov-text">{complaint.complainant_type}</strong></span>
             </p>
           </div>
 
           {complaint.linked_case_reference && (
-            <div className="p-3.5 bg-slate-50 rounded-md border border-gov-border text-left md:text-right shrink-0">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+            <div className="p-3.5 bg-gov-light rounded-md border border-gov-primary/30 text-left md:text-right shrink-0">
+              <span className="text-[11px] font-bold text-gov-dark uppercase tracking-wider block">
                 Linked Official Case
               </span>
-              <span className="font-mono font-bold text-gov-primary text-base block mt-0.5">
+              <span className="font-mono font-bold text-gov-dark text-base block mt-0.5">
                 {complaint.linked_case_reference}
               </span>
             </div>
           )}
         </div>
       </div>
+
 
       {/* Grid: Complaint Details & Institution Link */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

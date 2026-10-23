@@ -80,10 +80,16 @@ export const ReportsAnalyticsPage: React.FC = () => {
       <div className="gov-card p-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              Official Institutional Reports & Analytics
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-gov-primary"></span>
+              <span className="text-[11px] font-bold text-gov-muted uppercase tracking-widest font-mono">
+                STATUTORY REPORTING
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gov-text tracking-tight mt-1">
+              Reports & Analytics — Institutional Governance
             </h1>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-gov-muted max-w-3xl">
               Database-calculated institutional grievance statistics, bureau disposal metrics, and formal statutory export downloads.
             </p>
           </div>
@@ -93,16 +99,16 @@ export const ReportsAnalyticsPage: React.FC = () => {
             <button
               onClick={() => handleExport('csv')}
               disabled={exporting !== null}
-              className="gov-btn-secondary text-xs flex items-center gap-1.5"
+              className="gov-btn gov-btn-secondary text-xs flex items-center gap-1.5"
             >
-              <Download className="w-3.5 h-3.5 text-slate-600" />
+              <Download className="w-3.5 h-3.5 text-gov-muted" />
               <span>{exporting === 'csv' ? 'Generating...' : 'Export CSV'}</span>
             </button>
 
             <button
               onClick={() => handleExport('excel')}
               disabled={exporting !== null}
-              className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-semibold rounded-md border border-emerald-300 shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-semibold rounded-md border border-emerald-300 shadow-gov-sm transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
               <span>{exporting === 'excel' ? 'Generating...' : 'Export Excel (.xlsx)'}</span>
@@ -111,9 +117,9 @@ export const ReportsAnalyticsPage: React.FC = () => {
             <button
               onClick={() => handleExport('pdf')}
               disabled={exporting !== null}
-              className="gov-btn-primary text-xs flex items-center gap-1.5"
+              className="gov-btn gov-btn-primary text-xs flex items-center gap-1.5"
             >
-              <FileText className="w-3.5 h-3.5 text-amber-300" />
+              <FileText className="w-3.5 h-3.5" />
               <span>{exporting === 'pdf' ? 'Compiling PDF...' : 'Export Official PDF'}</span>
             </button>
           </div>
@@ -122,13 +128,13 @@ export const ReportsAnalyticsPage: React.FC = () => {
 
       {/* Institutional Folder Tabs */}
       <div className="border-b border-gov-border">
-        <nav className="flex space-x-2 text-xs font-bold">
+        <nav className="flex space-x-2 text-xs font-bold overflow-x-auto">
           <button
             onClick={() => setActiveTab('bureau')}
-            className={`py-2.5 px-4 rounded-t-md border-t border-x transition-colors flex items-center gap-2 cursor-pointer ${
+            className={`py-2.5 px-4 rounded-t-md border-t border-x transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap ${
               activeTab === 'bureau'
-                ? 'bg-white border-gov-border text-gov-primary border-b-2 border-b-white -mb-px'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'
+                ? 'bg-white border-gov-border text-gov-dark border-t-2 border-t-gov-primary -mb-px'
+                : 'border-transparent text-gov-muted hover:text-gov-text hover:bg-gov-light/40'
             }`}
           >
             <Building className="w-4 h-4 text-gov-primary" />
@@ -136,10 +142,10 @@ export const ReportsAnalyticsPage: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('region')}
-            className={`py-2.5 px-4 rounded-t-md border-t border-x transition-colors flex items-center gap-2 cursor-pointer ${
+            className={`py-2.5 px-4 rounded-t-md border-t border-x transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap ${
               activeTab === 'region'
-                ? 'bg-white border-gov-border text-gov-primary border-b-2 border-b-white -mb-px'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'
+                ? 'bg-white border-gov-border text-gov-dark border-t-2 border-t-gov-primary -mb-px'
+                : 'border-transparent text-gov-muted hover:text-gov-text hover:bg-gov-light/40'
             }`}
           >
             <MapPin className="w-4 h-4 text-gov-primary" />
@@ -147,10 +153,10 @@ export const ReportsAnalyticsPage: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('ageing')}
-            className={`py-2.5 px-4 rounded-t-md border-t border-x transition-colors flex items-center gap-2 cursor-pointer ${
+            className={`py-2.5 px-4 rounded-t-md border-t border-x transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap ${
               activeTab === 'ageing'
-                ? 'bg-white border-gov-border text-gov-primary border-b-2 border-b-white -mb-px'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'
+                ? 'bg-white border-gov-border text-gov-dark border-t-2 border-t-gov-primary -mb-px'
+                : 'border-transparent text-gov-muted hover:text-gov-text hover:bg-gov-light/40'
             }`}
           >
             <Clock className="w-4 h-4 text-gov-primary" />

@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from backend.app.core.database import get_db
-from backend.app.api.deps import require_admin, get_current_user
+from backend.app.api.deps import require_admin, get_current_user, require_roles
 from backend.app.core.permissions import RoleCode
 from backend.app.core.security import get_password_hash
 from backend.app.models.entities import (
@@ -21,10 +21,28 @@ def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(require_roles([
+        RoleCode.ADMIN, RoleCode.BUREAU_HEAD, RoleCode.PGRC_OFFICER,
+        RoleCode.RB_OFFICER, RoleCode.REGIONAL_OFFICE, RoleCode.MANAGEMENT
+    ]))
 ):
     users = db.query(User).offset(skip).limit(limit).all()
     return [UserOut.model_validate(u) for u in users]
+
+@router.get("/officers", response_model=List[UserOut])
+def list_officers(
+    bureau_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([
+        RoleCode.ADMIN, RoleCode.BUREAU_HEAD, RoleCode.PGRC_OFFICER,
+        RoleCode.RB_OFFICER, RoleCode.REGIONAL_OFFICE, RoleCode.MANAGEMENT
+    ]))
+):
+    query = db.query(User).join(User.roles).filter(Role.code != RoleCode.COMPLAINANT)
+    if bureau_id:
+        query = query.join(User.bureau_assignments).filter(UserBureauAssignment.bureau_id == bureau_id)
+    officers = query.distinct().all()
+    return [UserOut.model_validate(u) for u in officers]
 
 @router.post("/users", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(

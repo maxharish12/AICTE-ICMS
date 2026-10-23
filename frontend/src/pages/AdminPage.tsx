@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../api/client';
 import { User, Role, Bureau, Region } from '../types';
 import { Users, Plus, Shield, Building, MapPin, X, CheckCircle, Lock } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export const AdminPage: React.FC = () => {
+  const { showToast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [bureaus, setBureaus] = useState<Bureau[]>([]);
@@ -39,8 +41,9 @@ export const AdminPage: React.FC = () => {
       setBureaus(b);
       setRegions(reg);
       if (r.length > 0) setFormData((prev) => ({ ...prev, role_ids: [r[0].id] }));
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showToast('error', 'Directory Fetch Error', 'Failed to load official accounts directory.');
     } finally {
       setLoading(false);
     }
@@ -60,6 +63,7 @@ export const AdminPage: React.FC = () => {
         body: JSON.stringify(formData),
       });
       setShowAddModal(false);
+      showToast('success', 'Official Account Created', `Successfully provisioned credentials for ${formData.display_name} (${formData.username}).`);
       setFormData({
         display_name: '',
         email: '',
@@ -72,7 +76,9 @@ export const AdminPage: React.FC = () => {
       });
       fetchUsers();
     } catch (err: any) {
-      setFormError(err.message || 'Failed to create user account');
+      const errMsg = err.message || 'Failed to create user account';
+      setFormError(errMsg);
+      showToast('error', 'Account Creation Failed', errMsg);
     } finally {
       setSubmitting(false);
     }

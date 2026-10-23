@@ -17,6 +17,8 @@ router = APIRouter(prefix="/overlaps", tags=["Cross-Bureau Coordination"])
 @router.get("", response_model=List[OverlapFlagOut])
 def list_overlaps(
     state: Optional[str] = Query(None),
+    college_id: Optional[str] = Query(None),
+    permanent_id: Optional[str] = Query(None),
     region_id: Optional[int] = Query(None),
     institution_id: Optional[int] = Query(None),
     bureau_id: Optional[int] = Query(None),
@@ -32,6 +34,10 @@ def list_overlaps(
         if reg_ids:
             query = query.filter(Institution.region_id.in_(reg_ids))
 
+    if college_id and college_id.strip():
+        query = query.filter(Institution.college_id.ilike(college_id.strip()))
+    if permanent_id and permanent_id.strip():
+        query = query.filter(Institution.permanent_id.ilike(permanent_id.strip()))
     if state and state != "ALL":
         query = query.filter(OverlapFlag.relationship_state == state)
     if region_id and RoleCode.REGIONAL_OFFICE not in user_roles:
@@ -58,6 +64,12 @@ def list_overlaps(
         case_outs = []
         for c in active_cases:
             co = CaseSimpleOut.model_validate(c)
+            co.institution_id = f.institution_id
+            co.institution_name = f.institution.institution_name if f.institution else None
+            co.college_id = f.institution.college_id if f.institution else None
+            co.permanent_id = f.institution.permanent_id if f.institution else None
+            co.category = c.category
+            co.has_potential_overlap = True
             co.current_bureau_name = c.current_bureau.name if c.current_bureau else None
             co.assigned_officer_name = c.current_officer.display_name if c.current_officer else "Unassigned"
             case_outs.append(co)
@@ -76,12 +88,14 @@ def list_overlaps(
             id=f.id,
             institution_id=f.institution_id,
             institution_name=f.institution.institution_name if f.institution else "N/A",
-            permanent_id=f.institution.permanent_id if f.institution else "N/A",
+            college_id=f.institution.college_id if (f.institution and f.institution.college_id) else "Not Available",
+            permanent_id=f.institution.permanent_id if (f.institution and f.institution.permanent_id) else "Not Available",
             institution_state=f.institution.state if f.institution else "N/A",
             institution_region=f.institution.region.name if (f.institution and f.institution.region) else "N/A",
             detection_type=f.detection_type,
             detection_reason=f.detection_reason,
             relationship_state=f.relationship_state,
+            confidence_score=f.confidence_score if f.confidence_score is not None else 0.85,
             first_detected_at=f.first_detected_at,
             last_checked_at=f.last_checked_at,
             reviewed_by_name=f.reviewer.display_name if f.reviewer else None,
@@ -115,6 +129,12 @@ def get_overlap_detail(
     case_outs = []
     for c in active_cases:
         co = CaseSimpleOut.model_validate(c)
+        co.institution_id = flag.institution_id
+        co.institution_name = flag.institution.institution_name if flag.institution else None
+        co.college_id = flag.institution.college_id if flag.institution else None
+        co.permanent_id = flag.institution.permanent_id if flag.institution else None
+        co.category = c.category
+        co.has_potential_overlap = True
         co.current_bureau_name = c.current_bureau.name if c.current_bureau else None
         co.assigned_officer_name = c.current_officer.display_name if c.current_officer else "Unassigned"
         case_outs.append(co)
@@ -132,13 +152,15 @@ def get_overlap_detail(
     return OverlapFlagOut(
         id=flag.id,
         institution_id=flag.institution_id,
-        institution_name=flag.institution.institution_name,
-        permanent_id=flag.institution.permanent_id,
-        institution_state=flag.institution.state,
-        institution_region=flag.institution.region.name if flag.institution.region else "N/A",
+        institution_name=flag.institution.institution_name if flag.institution else "N/A",
+        college_id=flag.institution.college_id if (flag.institution and flag.institution.college_id) else "Not Available",
+        permanent_id=flag.institution.permanent_id if (flag.institution and flag.institution.permanent_id) else "Not Available",
+        institution_state=flag.institution.state if flag.institution else "N/A",
+        institution_region=flag.institution.region.name if (flag.institution and flag.institution.region) else "N/A",
         detection_type=flag.detection_type,
         detection_reason=flag.detection_reason,
         relationship_state=flag.relationship_state,
+        confidence_score=flag.confidence_score if flag.confidence_score is not None else 0.85,
         first_detected_at=flag.first_detected_at,
         last_checked_at=flag.last_checked_at,
         reviewed_by_name=flag.reviewer.display_name if flag.reviewer else None,

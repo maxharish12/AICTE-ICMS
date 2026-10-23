@@ -11,6 +11,8 @@ from backend.app.services.audit_service import log_audit_event
 def get_institutions_query(
     db: Session,
     search: Optional[str] = None,
+    college_id: Optional[str] = None,
+    permanent_id: Optional[str] = None,
     region_id: Optional[int] = None,
     record_status: Optional[str] = "ACTIVE",
     verification_status: Optional[str] = None
@@ -26,12 +28,19 @@ def get_institutions_query(
     if region_id:
         query = query.filter(Institution.region_id == region_id)
 
-    if search:
+    if college_id and college_id.strip():
+        query = query.filter(Institution.college_id.ilike(college_id.strip()))
+
+    if permanent_id and permanent_id.strip():
+        query = query.filter(Institution.permanent_id.ilike(permanent_id.strip()))
+
+    if search and search.strip():
         term = f"%{search.strip()}%"
         query = query.filter(
             or_(
                 Institution.institution_name.ilike(term),
                 Institution.permanent_id.ilike(term),
+                Institution.college_id.ilike(term),
                 Institution.city.ilike(term),
                 Institution.state.ilike(term)
             )
@@ -47,10 +56,25 @@ def calculate_institution_stats(db: Session, institution_id: int) -> Dict[str, A
         Case.status.notin_(["Disposed", "Closed – Action Taken", "Closed – No Action Required"])
     ).count()
 
+    open_cases = db.query(Case).filter(
+        Case.institution_id == institution_id,
+        Case.status.in_(["Received", "Under Scrutiny", "Under Inquiry"])
+    ).count()
+
+    pending_cases = db.query(Case).filter(
+        Case.institution_id == institution_id,
+        Case.status.in_(["Action Proposed", "Awaiting Institution Response", "Awaiting Regional Report", "Under Process", "Under Review"])
+    ).count()
+
+    resolved_cases = db.query(Case).filter(
+        Case.institution_id == institution_id,
+        Case.status.in_(["Disposed", "Closed – Action Taken", "Closed – No Action Required", "Resolved"])
+    ).count()
+
     now = datetime.now(timezone.utc)
     overdue_cases = db.query(Case).filter(
         Case.institution_id == institution_id,
-        Case.status.notin_(["Disposed", "Closed – Action Taken", "Closed – No Action Required"]),
+        Case.status.notin_(["Disposed", "Closed – Action Taken", "Closed – No Action Required", "Resolved"]),
         Case.applicable_deadline_at.isnot(None),
         Case.applicable_deadline_at < now
     ).count()
@@ -75,6 +99,9 @@ def calculate_institution_stats(db: Session, institution_id: int) -> Dict[str, A
     return {
         "total_complaints": total_complaints,
         "active_cases": active_cases,
+        "open_cases": open_cases,
+        "pending_cases": pending_cases,
+        "resolved_cases": resolved_cases,
         "overdue_cases": overdue_cases,
         "potential_overlaps": potential_overlaps,
         "last_activity": last_activity,
@@ -82,13 +109,22 @@ def calculate_institution_stats(db: Session, institution_id: int) -> Dict[str, A
     }
 
 def create_institution(db: Session, inst_in: InstitutionCreate, creator_id: Optional[int] = None) -> Institution:
-    # Check Permanent ID uniqueness
-    existing = db.query(Institution).filter(Institution.permanent_id == inst_in.permanent_id.strip()).first()
-    if existing:
-        raise ValueError(f"An institution with AICTE Permanent ID '{inst_in.permanent_id}' already exists.")
+    pid = inst_in.permanent_id.strip() if inst_in.permanent_id and inst_in.permanent_id.strip() else None
+    cid = inst_in.college_id.strip() if inst_in.college_id and inst_in.college_id.strip() else None
+
+    if pid:
+        existing = db.query(Institution).filter(Institution.permanent_id == pid).first()
+        if existing:
+            raise ValueError(f"An institution with AICTE Permanent ID '{pid}' already exists.")
+
+    if cid:
+        existing_c = db.query(Institution).filter(Institution.college_id == cid).first()
+        if existing_c:
+            raise ValueError(f"An institution with College ID '{cid}' already exists.")
 
     inst = Institution(
-        permanent_id=inst_in.permanent_id.strip(),
+        permanent_id=pid,
+        college_id=cid,
         institution_name=inst_in.institution_name.strip(),
         institution_type=inst_in.institution_type,
         address=inst_in.address,
@@ -114,7 +150,7 @@ def create_institution(db: Session, inst_in: InstitutionCreate, creator_id: Opti
         record_type="Institution",
         record_id=str(inst.id),
         user_id=creator_id,
-        metadata={"permanent_id": inst.permanent_id, "name": inst.institution_name}
+        metadata={"permanent_id": inst.permanent_id, "college_id": inst.college_id, "name": inst.institution_name}
     )
     db.commit()
     db.refresh(inst)
@@ -135,6 +171,16 @@ def update_institution(db: Session, inst_id: int, inst_in: InstitutionUpdate, up
         if existing:
             raise ValueError(f"An institution with AICTE Permanent ID '{new_pid}' already exists.")
         update_data["permanent_id"] = new_pid
+
+    if "college_id" in update_data and update_data["college_id"]:
+        new_cid = update_data["college_id"].strip()
+        existing_c = db.query(Institution).filter(
+            Institution.college_id == new_cid,
+            Institution.id != inst_id
+        ).first()
+        if existing_c:
+            raise ValueError(f"An institution with College ID '{new_cid}' already exists.")
+        update_data["college_id"] = new_cid
 
     for field, value in update_data.items():
         setattr(inst, field, value)

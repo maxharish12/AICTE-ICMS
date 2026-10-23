@@ -24,7 +24,12 @@ def assign_case_to_officer(
     if not target_officer:
         raise ValueError(f"Target officer ID {officer_id} not found.")
 
-    target_bureau_id = bureau_id if bureau_id else case.current_bureau_id
+    target_bureau_id = bureau_id or case.current_bureau_id
+    if not target_bureau_id and target_officer.bureau_assignments:
+        target_bureau_id = target_officer.bureau_assignments[0].bureau_id
+    if not target_bureau_id:
+        target_bureau_id = 1
+
     now = datetime.now(timezone.utc)
 
     # Deactivate previous active assignment without deleting history
@@ -68,11 +73,12 @@ def assign_case_to_officer(
     db.add(wf)
 
     # Notify officer
+    inst_name = case.institution.institution_name if case.institution else "Institutional Case"
     create_notification(
         db=db,
         notification_type="NEW_ASSIGNMENT",
         title=f"New Assignment: Case {case.case_reference}",
-        message=f"You have been assigned Case {case.case_reference} ({case.institution.institution_name}). Reason: {reason}",
+        message=f"You have been assigned Case {case.case_reference} ({inst_name}). Reason: {reason}",
         recipient_user_ids=[officer_id],
         institution_id=case.institution_id,
         case_id=case.id

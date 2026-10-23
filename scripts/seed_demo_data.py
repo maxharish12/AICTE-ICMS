@@ -159,19 +159,26 @@ def seed_database():
         print("[OK] SLA Rules seeded.")
 
         # 7. Seed Fictional Institutions
+        # 7. Seed Fictional Institutions
         institutions_data = [
-            ("DEMO-AICTE-001", "Demo Institute A — Technology & Science", "Engineering & Technology", "Knowledge City, Sector 62", "Noida", "Gautam Buddha Nagar", "Uttar Pradesh", "NRO", "Kanpur", "201301", "contact@demo-inst-a.ac.in", "VERIFIED"),
-            ("DEMO-AICTE-002", "Demo Institute B — College of Engineering", "Engineering & Technology", "University Road, Shivaji Nagar", "Pune", "Pune", "Maharashtra", "WRO", "Mumbai", "411005", "info@demo-inst-b.edu.in", "VERIFIED"),
-            ("DEMO-AICTE-003", "Demo Institute C — Institute of Management & Technology", "Management", "Old Mahabalipuram Road", "Chennai", "Chennai", "Tamil Nadu", "SRO", "Chennai", "600096", "registrar@demo-inst-c.ac.in", "VERIFIED"),
-            ("DEMO-AICTE-004", "Demo Institute D — Polytechnic & Technical Studies", "Polytechnic", "Bidhannagar Sector V", "Kolkata", "North 24 Parganas", "West Bengal", "ERO", "Kolkata", "700091", "admin@demo-inst-d.org", "VERIFIED"),
-            ("DEMO-AICTE-005", "Demo Institute E — Global College of Pharmacy", "Pharmacy", "Malviya Nagar Extension", "Jaipur", "Jaipur", "Rajasthan", "NRO", "Kanpur", "302017", "pharmacy@demo-inst-e.ac.in", "VERIFIED"),
+            ("DEMO-AICTE-001", "CLG-1001", "Demo Institute A — Technology & Science", "Engineering & Technology", "Knowledge City, Sector 62", "Noida", "Gautam Buddha Nagar", "Uttar Pradesh", "NRO", "Kanpur", "201301", "contact@demo-inst-a.ac.in", "VERIFIED"),
+            ("DEMO-AICTE-002", "CLG-1002", "Demo Institute B — College of Engineering", "Engineering & Technology", "University Road, Shivaji Nagar", "Pune", "Pune", "Maharashtra", "WRO", "Mumbai", "411005", "info@demo-inst-b.edu.in", "VERIFIED"),
+            ("DEMO-AICTE-003", "CLG-1003", "Demo Institute C — Institute of Management & Technology", "Management", "Old Mahabalipuram Road", "Chennai", "Chennai", "Tamil Nadu", "SRO", "Chennai", "600096", "registrar@demo-inst-c.ac.in", "VERIFIED"),
+            ("DEMO-AICTE-004", "CLG-1004", "Demo Institute D — Polytechnic & Technical Studies", "Polytechnic", "Bidhannagar Sector V", "Kolkata", "North 24 Parganas", "West Bengal", "ERO", "Kolkata", "700091", "admin@demo-inst-d.org", "VERIFIED"),
+            ("DEMO-AICTE-005", "CLG-1005", "Demo Institute E — Global College of Pharmacy", "Pharmacy", "Malviya Nagar Extension", "Jaipur", "Jaipur", "Rajasthan", "NRO", "Kanpur", "302017", "pharmacy@demo-inst-e.ac.in", "VERIFIED"),
+            (None, "CLG-1006", "Demo Institute F — Emerging Tech Campus (Unverified)", "Engineering & Technology", "Ring Road, MIDC", "Nagpur", "Nagpur", "Maharashtra", "WRO", "Mumbai", "440001", "contact@demo-inst-f.org", "UNVERIFIED"),
         ]
         insts_map = {}
-        for perm_id, name, itype, addr, city, dist, state, r_code, roffice, pin, mail, v_status in institutions_data:
-            inst = db.query(Institution).filter(Institution.permanent_id == perm_id).first()
+        for perm_id, clg_id, name, itype, addr, city, dist, state, r_code, roffice, pin, mail, v_status in institutions_data:
+            inst = None
+            if perm_id:
+                inst = db.query(Institution).filter(Institution.permanent_id == perm_id).first()
+            if not inst and clg_id:
+                inst = db.query(Institution).filter(Institution.college_id == clg_id).first()
             if not inst:
                 inst = Institution(
                     permanent_id=perm_id,
+                    college_id=clg_id,
                     institution_name=name,
                     institution_type=itype,
                     address=addr,
@@ -189,14 +196,18 @@ def seed_database():
                 )
                 db.add(inst)
                 db.flush()
-            insts_map[perm_id] = inst
+            else:
+                inst.college_id = clg_id
+                db.flush()
+            key = perm_id if perm_id else clg_id
+            insts_map[key] = inst
         print("[OK] Fictional Institutions seeded.")
 
         # 8. SEED SPECIFIC OVERLAP SCENARIO FOR DEMO INSTITUTE A
         # Prompt Requirement:
         # Case 1: PGRC case in active status "Under Verification"
         # Case 2: Regulation Bureau (RB) case in active status "Under Scrutiny"
-        # Associate both with DEMO-AICTE-001. Different handling Bureaus.
+        # Case 7: Overlapping PGRC/RB case regarding the same capitation fee admission incident
         inst_a = insts_map["DEMO-AICTE-001"]
 
         # Complaint 1 for Inst A
@@ -337,9 +348,97 @@ def seed_database():
             )
             db.add(wf2)
 
+        # Complaint 7 for Inst A (Incident-level overlap with Complaint 1: capitation fee in admissions)
+        c7 = db.query(Complaint).filter(Complaint.complaint_reference == "CMP-2026-0007").first()
+        if not c7:
+            c7 = Complaint(
+                complaint_reference="CMP-2026-0007",
+                title="Unauthorized admission fee and capitation charge demand for B.Tech quota",
+                description="Parent reports that admissions cell demanded mandatory cash capitation and unreceipted development fee during B.Tech counseling.",
+                complainant_id=None,
+                institution_id=inst_a.id,
+                category_id=cats_map["CAT_STUDENT"].id,
+                complainant_type="PARENT",
+                source="EMAIL",
+                received_at=now - timedelta(days=10),
+                status="CASE_LINKED",
+                sensitivity_classification="NORMAL",
+                assigned_bureau_id=bureaus_map["RB"].id,
+                created_by=users_map["admin"].id
+            )
+            db.add(c7)
+            db.flush()
+
+        case7 = db.query(Case).filter(Case.case_reference == "CASE-2026-0007").first()
+        if not case7:
+            case7 = Case(
+                case_reference="CASE-2026-0007",
+                institution_id=inst_a.id,
+                current_bureau_id=bureaus_map["RB"].id,
+                current_officer_id=users_map["rb_officer"].id,
+                title="Cross-Bureau Grievance: Capitation Fee Demand in B.Tech Quota",
+                category="Student Welfare & Fee Disputes",
+                status="Under Scrutiny",
+                priority="HIGH",
+                received_at=now - timedelta(days=10),
+                last_action="Cross-verified with PGRC complaint CMP-2026-0001; preliminary inquiry ordered",
+                last_action_at=now - timedelta(days=2),
+                next_action="Joint inquiry with PGRC officer",
+                applicable_deadline_at=now + timedelta(days=15),
+                created_by=users_map["rb_officer"].id
+            )
+            db.add(case7)
+            db.flush()
+
+            link7 = ComplaintCaseLink(complaint_id=c7.id, case_id=case7.id, link_type="PRIMARY", created_by=users_map["admin"].id)
+            db.add(link7)
+
+            assign7 = Assignment(
+                case_id=case7.id,
+                bureau_id=bureaus_map["RB"].id,
+                officer_id=users_map["rb_officer"].id,
+                assigned_by=users_map["bureau_head"].id,
+                assigned_at=now - timedelta(days=9),
+                reason="Assigned to RB officer for statutory capitation prohibition enforcement",
+                assignment_status="ACTIVE"
+            )
+            db.add(assign7)
+
+            wf7 = WorkflowHistory(
+                institution_id=inst_a.id,
+                case_id=case7.id,
+                action_type="STATUS_CHANGE",
+                previous_value="Received",
+                new_value="Under Scrutiny",
+                remarks="Case registered and assigned for regulatory compliance verification",
+                performed_by=users_map["rb_officer"].id,
+                created_at=now - timedelta(days=2)
+            )
+            db.add(wf7)
+
         # 9. Additional realistic cases for other demo institutes
         # Inst B: Overdue case demonstration
         inst_b = insts_map["DEMO-AICTE-002"]
+        c3 = db.query(Complaint).filter(Complaint.complaint_reference == "CMP-2026-0003").first()
+        if not c3:
+            c3 = Complaint(
+                complaint_reference="CMP-2026-0003",
+                title="Non-refund of caution deposit to graduated students",
+                description="Students graduated 8 months ago report caution deposit not refunded despite repeated clearance submissions.",
+                complainant_id=users_map["complainant_user"].id,
+                institution_id=inst_b.id,
+                category_id=cats_map["CAT_STUDENT"].id,
+                complainant_type="STUDENT",
+                source="PORTAL",
+                received_at=now - timedelta(days=40),
+                status="CASE_LINKED",
+                sensitivity_classification="NORMAL",
+                assigned_bureau_id=bureaus_map["PGRC"].id,
+                created_by=users_map["complainant_user"].id
+            )
+            db.add(c3)
+            db.flush()
+
         case3 = db.query(Case).filter(Case.case_reference == "CASE-2026-0003").first()
         if not case3:
             case3 = Case(
@@ -364,6 +463,26 @@ def seed_database():
 
         # Inst C: Disposed Case demonstration
         inst_c = insts_map["DEMO-AICTE-003"]
+        c4 = db.query(Complaint).filter(Complaint.complaint_reference == "CMP-2026-0004").first()
+        if not c4:
+            c4 = Complaint(
+                complaint_reference="CMP-2026-0004",
+                title="Delay in release of AICTE PG scholarship disbursal",
+                description="M.Tech GATE scholars report portal discrepancy in Direct Benefit Transfer disbursal for 2 quarters.",
+                complainant_id=users_map["complainant_user"].id,
+                institution_id=inst_c.id,
+                category_id=cats_map["CAT_STUDENT"].id,
+                complainant_type="STUDENT",
+                source="PORTAL",
+                received_at=now - timedelta(days=25),
+                status="CASE_LINKED",
+                sensitivity_classification="NORMAL",
+                assigned_bureau_id=bureaus_map["PGRC"].id,
+                created_by=users_map["admin"].id
+            )
+            db.add(c4)
+            db.flush()
+
         case4 = db.query(Case).filter(Case.case_reference == "CASE-2026-0004").first()
         if not case4:
             case4 = Case(
@@ -387,6 +506,26 @@ def seed_database():
 
         # Inst D: Transferred case demonstration
         inst_d = insts_map["DEMO-AICTE-004"]
+        c5 = db.query(Complaint).filter(Complaint.complaint_reference == "CMP-2026-0005").first()
+        if not c5:
+            c5 = Complaint(
+                complaint_reference="CMP-2026-0005",
+                title="Irregular intake expansion beyond approved AICTE sanction",
+                description="Anonymous faculty complaint indicating 120 students admitted against approved intake sanction of 60.",
+                complainant_id=None,
+                institution_id=inst_d.id,
+                category_id=cats_map["CAT_COMPL"].id,
+                complainant_type="STAFF",
+                source="PORTAL",
+                received_at=now - timedelta(days=18),
+                status="CASE_LINKED",
+                sensitivity_classification="HIGH_PRIORITY",
+                assigned_bureau_id=bureaus_map["RB"].id,
+                created_by=users_map["admin"].id
+            )
+            db.add(c5)
+            db.flush()
+
         case5 = db.query(Case).filter(Case.case_reference == "CASE-2026-0005").first()
         if not case5:
             case5 = Case(
@@ -421,6 +560,67 @@ def seed_database():
                 receiving_remarks="Accepted by Regulation Bureau desk for regulatory audit"
             )
             db.add(trans1)
+
+        # Inst E: SafeVoice Confidential Grievance demonstration
+        inst_e = insts_map["DEMO-AICTE-005"]
+        c6 = db.query(Complaint).filter(Complaint.complaint_reference == "CMP-2026-0006").first()
+        if not c6:
+            c6 = Complaint(
+                complaint_reference="CMP-2026-0006",
+                title="Whistleblower Disclosure: Allegation of research grant diversion and retaliatory harassment",
+                description="Confidential disclosure filed under whistleblower provisions regarding unauthorized diversion of central technical research grants. Identity protected under AICTE SafeVoice procedural protocol.",
+                complainant_id=users_map["complainant_user"].id,
+                institution_id=inst_e.id,
+                category_id=cats_map["CAT_FACULTY"].id,
+                complainant_type="FACULTY",
+                source="PORTAL",
+                received_at=now - timedelta(days=6),
+                status="CASE_LINKED",
+                sensitivity_classification="CONFIDENTIAL",
+                assigned_bureau_id=bureaus_map["PGRC"].id,
+                created_by=users_map["complainant_user"].id
+            )
+            db.add(c6)
+            db.flush()
+
+        case6 = db.query(Case).filter(Case.case_reference == "CASE-2026-0006").first()
+        if not case6:
+            case6 = Case(
+                case_reference="CASE-2026-0006",
+                institution_id=inst_e.id,
+                current_bureau_id=bureaus_map["PGRC"].id,
+                current_officer_id=users_map["bureau_head"].id,
+                title="SafeVoice Case: Whistleblower Protection & Grant Scrutiny",
+                category="Faculty & Staff Grievances",
+                status="Under Verification",
+                priority="HIGH",
+                received_at=now - timedelta(days=6),
+                last_action="Procedural milestone 1 verified; whistleblower anonymity protection confirmed",
+                last_action_at=now - timedelta(days=1),
+                next_action="Confidential audit committee formation by Competent Authority",
+                applicable_deadline_at=now + timedelta(days=9),
+                created_by=users_map["bureau_head"].id
+            )
+            db.add(case6)
+            db.flush()
+
+        # Ensure all ComplaintCaseLinks are explicitly established
+        pairs_to_link = [
+            (c1, case1),
+            (c2, case2),
+            (c3, case3),
+            (c4, case4),
+            (c5, case5),
+            (c6, case6),
+            (c7, case7),
+        ]
+        for comp_obj, case_obj in pairs_to_link:
+            if comp_obj and case_obj:
+                existing_link = db.query(ComplaintCaseLink).filter_by(complaint_id=comp_obj.id, case_id=case_obj.id).first()
+                if not existing_link:
+                    new_link = ComplaintCaseLink(complaint_id=comp_obj.id, case_id=case_obj.id, link_type="PRIMARY", created_by=users_map["admin"].id)
+                    db.add(new_link)
+        db.flush()
 
         db.commit()
 

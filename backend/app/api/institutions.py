@@ -17,7 +17,9 @@ router = APIRouter(prefix="/institutions", tags=["Institutions"])
 
 @router.get("", response_model=List[InstitutionOut])
 def list_institutions(
-    search: Optional[str] = Query(None, description="Search by name, permanent ID, or city"),
+    search: Optional[str] = Query(None, description="Search by name, permanent ID, college ID, or city"),
+    college_id: Optional[str] = Query(None, description="Filter by internal College ID"),
+    permanent_id: Optional[str] = Query(None, description="Filter by AICTE Permanent ID"),
     region_id: Optional[int] = Query(None),
     status: Optional[str] = Query("ACTIVE"),
     skip: int = Query(0, ge=0),
@@ -32,7 +34,14 @@ def list_institutions(
         if reg_ids:
             region_id = reg_ids[0]
 
-    query = get_institutions_query(db, search=search, region_id=region_id, record_status=status)
+    query = get_institutions_query(
+        db,
+        search=search,
+        college_id=college_id,
+        permanent_id=permanent_id,
+        region_id=region_id,
+        record_status=status
+    )
     institutions = query.offset(skip).limit(limit).all()
 
     result = []
@@ -41,6 +50,9 @@ def list_institutions(
         out = InstitutionOut.model_validate(inst)
         out.total_complaints = stats["total_complaints"]
         out.active_cases = stats["active_cases"]
+        out.open_cases = stats["open_cases"]
+        out.pending_cases = stats["pending_cases"]
+        out.resolved_cases = stats["resolved_cases"]
         out.overdue_cases = stats["overdue_cases"]
         out.potential_overlaps = stats["potential_overlaps"]
         out.last_activity = stats["last_activity"]
@@ -68,10 +80,14 @@ def get_institution_profile(
     current_user: User = Depends(get_current_user)
 ):
     inst = None
-    if identifier.isdigit():
-        inst = db.query(Institution).filter(Institution.id == int(identifier)).first()
+    clean_id = identifier.strip()
+    if clean_id.isdigit():
+        inst = db.query(Institution).filter(Institution.id == int(clean_id)).first()
     if not inst:
-        inst = db.query(Institution).filter(Institution.permanent_id == identifier).first()
+        inst = db.query(Institution).filter(Institution.permanent_id.ilike(clean_id)).first()
+    if not inst:
+        # Fallback to internal College ID
+        inst = db.query(Institution).filter(Institution.college_id.ilike(clean_id)).first()
     if not inst:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Institution not found")
 
@@ -81,6 +97,9 @@ def get_institution_profile(
     out = InstitutionDetailOut.model_validate(inst)
     out.total_complaints = stats["total_complaints"]
     out.active_cases = stats["active_cases"]
+    out.open_cases = stats["open_cases"]
+    out.pending_cases = stats["pending_cases"]
+    out.resolved_cases = stats["resolved_cases"]
     out.overdue_cases = stats["overdue_cases"]
     out.potential_overlaps = stats["potential_overlaps"]
     out.last_activity = stats["last_activity"]
@@ -90,11 +109,24 @@ def get_institution_profile(
     complaints = db.query(Complaint).filter(Complaint.institution_id == inst.id).order_by(Complaint.created_at.desc()).all()
     out.complaints = [ComplaintSimpleOut.model_validate(c) for c in complaints]
 
+    # Active overlap check for cases
+    active_overlap_flags = db.query(OverlapFlag).filter(
+        OverlapFlag.institution_id == inst.id,
+        OverlapFlag.relationship_state.in_(["POTENTIAL_OVERLAP", "UNDER_REVIEW", "COORDINATION_REQUESTED", "JOINT_ACTION_IN_PROGRESS", "ESCALATED"])
+    ).all()
+    has_active_overlap = len(active_overlap_flags) > 0
+
     # Cases
     cases = db.query(Case).filter(Case.institution_id == inst.id).order_by(Case.created_at.desc()).all()
     case_outs = []
     for c in cases:
         c_out = CaseSimpleOut.model_validate(c)
+        c_out.institution_id = inst.id
+        c_out.institution_name = inst.institution_name
+        c_out.college_id = inst.college_id
+        c_out.permanent_id = inst.permanent_id
+        c_out.category = c.category
+        c_out.has_potential_overlap = has_active_overlap
         c_out.current_bureau_name = c.current_bureau.name if c.current_bureau else None
         c_out.assigned_officer_name = c.current_officer.display_name if c.current_officer else "Unassigned"
         case_outs.append(c_out)
@@ -106,6 +138,7 @@ def get_institution_profile(
     for f in flags:
         f_out = OverlapFlagSimpleOut.model_validate(f)
         f_out.institution_name = inst.institution_name
+        f_out.college_id = inst.college_id
         f_out.permanent_id = inst.permanent_id
         flag_outs.append(f_out)
     out.overlap_flags = flag_outs
@@ -126,6 +159,9 @@ def modify_institution(
         out = InstitutionOut.model_validate(inst)
         out.total_complaints = stats["total_complaints"]
         out.active_cases = stats["active_cases"]
+        out.open_cases = stats["open_cases"]
+        out.pending_cases = stats["pending_cases"]
+        out.resolved_cases = stats["resolved_cases"]
         out.overdue_cases = stats["overdue_cases"]
         out.potential_overlaps = stats["potential_overlaps"]
         out.last_activity = stats["last_activity"]
